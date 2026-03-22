@@ -7,7 +7,7 @@ int main()
     auto lang = "C++";
     std::cout << "Hello and welcome to " << lang << "!\n";
 
-    std::cout << "OpenCV version: " << CV_VERSION << std::endl;
+    std::cout << "OpenCV version: the version installed is" << CV_VERSION << std::endl;
 
     for (int i = 1; i <= 5; i++)
     {
