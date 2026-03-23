@@ -120,10 +120,23 @@ void Exercise2()
     userInput();
 }
 
-
 void Exercise3()
 {
     std::cout << "Rodando o Exercicio 3" << std::endl;
+
+    std::string pathImage = buscarImagem();
+
+    cv::Mat imageGray = cv::imread(pathImage, cv::IMREAD_GRAYSCALE);
+    cv::imwrite("../output/imagem_gray.jpg", imageGray);
+    std::cout << "A imagem em tons de cinza foi gravada em disco" << std::endl;
+
+    int x, y;
+    std::cout << "Digite a coordenada x: ";
+    std::cin >> x;
+
+    std::cout << "Digite a coordenada y: ";
+    std::cin >> y;
+
 }
 
 void Exercise4()
