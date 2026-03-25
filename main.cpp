@@ -312,7 +312,6 @@ void Exercise7()
     selectExerciceGUI();
 }
 
-
 void Exercise8()
 {
     std::cout << "Rodando o Exercicio 8" << std::endl;
