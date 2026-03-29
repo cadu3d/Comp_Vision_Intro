@@ -16,9 +16,11 @@ void Exercise8();
 
 int main()
 {
+    //setup inicial: Remove mensagens de erro e erros de linguagem
     cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_ERROR);
-
     std::setlocale(LC_ALL, "pt_BR.UTF-8");
+
+    //Inicia o GUI
     std::cout << "Introdução à Computação Gráfica - Lab 1" "!\n";
     std::cout << "OpenCV version: " << CV_VERSION << std::endl;
     selectExerciceGUI();
