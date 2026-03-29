@@ -1,7 +1,7 @@
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
-#include <windows.h>
+#include <clocale>
 
 void selectExerciceGUI();
 void runExercise(int exercise);
@@ -18,7 +18,8 @@ int main()
 {
     cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_ERROR);
 
-    std::cout << "Introducao a Computacao Grafica Lab 1" "!\n";
+    std::setlocale(LC_ALL, "pt_BR.UTF-8");
+    std::cout << "Introducao a Computação Gráfica Lab 1" "!\n";
     std::cout << "OpenCV version: " << CV_VERSION << std::endl;
     selectExerciceGUI();
 }
@@ -28,7 +29,7 @@ void selectExerciceGUI()
     int exercise;
 
     std::cout << "\n";
-    std::cout << "Selecione um exercicio de 1 a 8: " << std::endl;;
+    std::cout << "Selecione um exercício de 1 a 8: " << std::endl;;
     std::cin >> exercise;
     runExercise(exercise);
 }
@@ -62,7 +63,7 @@ void runExercise(int exercise)
         Exercise8();
         break;
     default:
-        std::cout << "Exercicio Invalido" << std::endl;
+        std::cout << "Exercício Inválido" << std::endl;
         selectExerciceGUI();
         break;
     }
@@ -93,11 +94,11 @@ cv::Mat gerarImagemCinza()
     return imagemOriginal;
 }
 
-//Exercicios INICIO **********************************************************************
+//Exercícios INICIO **********************************************************************
 
 void Exercise1()
 {
-    std::cout << "Rodando o Exercicio 1" << std::endl;
+    std::cout << "Rodando o Exercício 1" << std::endl;
 
     std::string pathImage = buscarImagem();
 
@@ -114,7 +115,7 @@ void Exercise1()
 
 void Exercise2()
 {
-    std::cout << "Rodando o Exercicio 2" << std::endl;
+    std::cout << "Rodando o Exercício 2" << std::endl;
 
     std::string pathImage = buscarImagem();
 
@@ -138,7 +139,7 @@ void Exercise2()
 
 void Exercise3()
 {
-    std::cout << "Rodando o Exercicio 3" << std::endl;
+    std::cout << "Rodando o Exercício 3" << std::endl;
 
     //ler e gravar a imagem em tons de cinza
     cv::Mat imagemOriginal = gerarImagemCinza();
@@ -159,7 +160,7 @@ void Exercise3()
 
 void Exercise4()
 {
-    std::cout << "Rodando o Exercicio 4" << std::endl;
+    std::cout << "Rodando o Exercício 4" << std::endl;
 
     //ler e gravar a imagem em tons de cinza
     cv::Mat imagemOriginal = gerarImagemCinza();
@@ -183,7 +184,7 @@ void Exercise4()
 
 void Exercise5()
 {
-    std::cout << "Rodando o Exercicio 5" << std::endl;
+    std::cout << "Rodando o Exercício 5" << std::endl;
 
     //ler e gravar a imagem em tons de cinza
     cv::Mat imagemOriginal = gerarImagemCinza();
@@ -214,7 +215,7 @@ void Exercise5()
 
 void Exercise6()
 {
-    std::cout << "Rodando o Exercicio 6" << std::endl;
+    std::cout << "Rodando o Exercício 6" << std::endl;
 
     //Gerar imagem t.cinza e clonar
     cv::Mat imagemOriginal = gerarImagemCinza();
@@ -292,7 +293,7 @@ int preencheMedia(cv::Mat imageTarget, int inicioY, int inicioX, int amostra, in
 
 void Exercise7()
 {
-    std::cout << "Rodando o Exercicio 7" << std::endl;
+    std::cout << "Rodando o Exercício 7" << std::endl;
 
     //ler e gravar a imagem em tons de cinza
     cv::Mat imageOrig = gerarImagemCinza();
@@ -350,7 +351,7 @@ void Exercise7()
 
 void Exercise8()
 {
-    std::cout << "Rodando o Exercicio 8" << std::endl;
+    std::cout << "Rodando o Exercício 8" << std::endl;
 
     //Gerar imagem t.cinza
     cv::Mat imagemOriginal = gerarImagemCinza();
@@ -378,7 +379,7 @@ void Exercise8()
             int inicioY = y * amostra;
             int inicioX = x * amostra;
 
-            //enviar amostra para calcular a media
+            //enviar amostra para calcular a média
             int media = calcularMedia(imagemOriginal, inicioY, inicioX, amostra);
             imagemRed.at<uchar>(y, x) = media;
 
@@ -387,11 +388,11 @@ void Exercise8()
         }
     }
 
-
+    //Criar imagem para reduzir tons de cinza
     cv::Mat image20 = imagemOriginal.clone();
     cv::Mat imagemFinal = imagemAmp.clone();
 
-
+    //Reduzir tons de cinza nas imagens
     for (int y = 0; y < 512; ++y)
     {
         for (int x = 0; x < 512; ++x)
@@ -418,6 +419,7 @@ void Exercise8()
     cv::hconcat(images, comparcao); // all side by side
     mostrarImagem("Preto & Branco", comparcao, 6);
 
+    //Comentário sobre as diferenças
     std::cout << "A imagem de baixa resolução apresenta os contornos prejudicados (serrilhados), porém a qualidade dos preenchimentos permanece inalterada." << std::endl;
     std::cout << "A imagem com poucos tons de cinza apresenta os contornos inalterados, porém a qualidade dos preenchimentos/superfícies demonstra efeitos de camadas." << std::endl;
     std::cout << "A imagem de baixa resolução com poucos níveis de cinza apresenta os contornos prejudicados (serrilhados) e preenchimentos/superfícies com efeitos de camadas e serrilhamento entre as mesmas." << std::endl;
