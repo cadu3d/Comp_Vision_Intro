@@ -1,10 +1,7 @@
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
-#include <clocale>
 
-void selExercicioGUI();
-void runExercicio(int Exercicio);
 void Exercicio1();
 void Exercicio2();
 void Exercicio3();
@@ -16,30 +13,17 @@ void Exercicio8();
 
 void runLab1()
 {
-    std::cout << "Introdução à Computação Gráfica - Lab 1!\n";
-    selExercicioGUI();
-}
 
-void selExercicioGUI()
-{
-    int Exercicio;
+    int Exercicio = 0;
 
     std::cout << "\n";
-    std::cout << "Selecione um EXERCÍCIO de 1 a 8, (0 - VOLTAR): " << std::endl;;
+    std::cout << "LAB 01 - Selecione um EXERCÍCIO de 1 a 8, (0 -> VOLTAR): " << std::endl;
     std::cin >> Exercicio;
 
-    if (Exercicio == 0)
-    {
-        return;
-    }
-
-    runExercicio(Exercicio);
-}
-
-void runExercicio(int Exercicio)
-{
     switch (Exercicio)
     {
+    case 0:
+        return;
     case 1:
         Exercicio1();
         break;
@@ -66,7 +50,7 @@ void runExercicio(int Exercicio)
         break;
     default:
         std::cout << "Exercício Inválido" << std::endl;
-        selExercicioGUI();
+        runLab1();
         break;
     }
 }
@@ -112,7 +96,7 @@ void Exercicio1()
     std::cout << "A imagem tem resolução de: " << image.rows << " x " << image.cols
         << " e " << image.channels() << " canais. " << std::endl;
 
-    selExercicioGUI();
+    runLab1();
 }
 
 void Exercicio2()
@@ -135,7 +119,7 @@ void Exercicio2()
     mostrarImagem("Colorida", imageRGB, 2);
     mostrarImagem("Tons de Cinza", imagemOriginal, 2);
 
-    selExercicioGUI();
+    runLab1();
 }
 
 
@@ -157,7 +141,7 @@ void Exercicio3()
     int intensidade = imagemOriginal.at<uchar>(y, x);
     std::cout << "intensidade na coordenada (" << y << "," << x << ") = " << intensidade << std::endl;
 
-    selExercicioGUI();
+    runLab1();
 }
 
 void Exercicio4()
@@ -181,7 +165,7 @@ void Exercicio4()
     //mostrar imagem invertida
     mostrarImagem("Invertida", imagemOriginal, 2);
 
-    selExercicioGUI();
+    runLab1();
 }
 
 void Exercicio5()
@@ -212,7 +196,7 @@ void Exercicio5()
     //mostrar imagem invertida
     mostrarImagem("Preto & Branco", imagemOriginal, 2);
 
-    selExercicioGUI();
+    runLab1();
 }
 
 void Exercicio6()
@@ -260,7 +244,7 @@ void Exercicio6()
     mostrarImagem("Comparação: imagem com 128, 64, 16 e 4 níveis de intensidade", comparcao, 6);
 
 
-    selExercicioGUI();
+    runLab1();
 }
 
 int calcularMedia(cv::Mat imageTarget, int inicioY, int inicioX, int amostra)
@@ -348,7 +332,7 @@ void Exercicio7()
     cv::hconcat(images, comparcao); // all side by side
     mostrarImagem("Imagem original e com resoluçao reduzida", comparcao, 6);
 
-    selExercicioGUI();
+    runLab1();
 }
 
 void Exercicio8()
@@ -411,7 +395,6 @@ void Exercicio8()
             levels = 20;
             divisor = 256 / levels;
             imagemFinal.at<uchar>(y, x) = (atual2 / divisor) * divisor;
-
         }
     }
 
@@ -422,10 +405,15 @@ void Exercicio8()
     mostrarImagem("Comparação", comparcao, 6);
 
     //Comentário sobre as diferenças
-    std::cout << " -> A imagem de baixa resolução apresenta os contornos prejudicados (serrilhados), porém a qualidade dos preenchimentos/superfícies permanece inalterada." << std::endl;
-    std::cout << " -> A imagem com poucos tons de cinza apresenta os contornos inalterados, porém a qualidade dos preenchimentos/superfícies demonstra efeitos de camadas." << std::endl;
-    std::cout << " -> A imagem de baixa resolução com poucos níveis de cinza apresenta os contornos prejudicados (serrilhados) e preenchimentos/superfícies com efeitos de camadas e serrilhamento entre as mesmas." << std::endl;
+    std::cout <<
+        " -> A imagem de baixa resolução apresenta os contornos prejudicados (serrilhados), porém a qualidade dos preenchimentos/superfícies permanece inalterada."
+        << std::endl;
+    std::cout <<
+        " -> A imagem com poucos tons de cinza apresenta os contornos inalterados, porém a qualidade dos preenchimentos/superfícies demonstra efeitos de camadas."
+        << std::endl;
+    std::cout <<
+        " -> A imagem de baixa resolução com poucos níveis de cinza apresenta os contornos prejudicados (serrilhados) e preenchimentos/superfícies com efeitos de camadas e serrilhamento entre as mesmas."
+        << std::endl;
 
-    selExercicioGUI();
-
+    runLab1();
 }
