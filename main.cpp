@@ -19,7 +19,7 @@ int main()
     cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_ERROR);
 
     std::setlocale(LC_ALL, "pt_BR.UTF-8");
-    std::cout << "Introducao a Computação Gráfica Lab 1" "!\n";
+    std::cout << "Introdução à Computação Gráfica - Lab 1" "!\n";
     std::cout << "OpenCV version: " << CV_VERSION << std::endl;
     selectExerciceGUI();
 }
@@ -388,7 +388,7 @@ void Exercise8()
         }
     }
 
-    //Criar imagem para reduzir tons de cinza
+    //Criar imagens para reduzir tons de cinza
     cv::Mat image20 = imagemOriginal.clone();
     cv::Mat imagemFinal = imagemAmp.clone();
 
