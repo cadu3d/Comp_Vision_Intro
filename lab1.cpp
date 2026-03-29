@@ -2,6 +2,8 @@
 #include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
 
+#include "utils.h"
+
 void Exercicio1();
 void Exercicio2();
 void Exercicio3();
@@ -14,7 +16,7 @@ void Exercicio8();
 void runLab1()
 {
 
-    int Exercicio = 0;
+    int Exercicio;
 
     std::cout << "\n";
     std::cout << "LAB 01 - Selecione um EXERCÍCIO de 1 a 8, (0 -> VOLTAR): " << std::endl;
@@ -54,33 +56,6 @@ void runLab1()
         break;
     }
 }
-
-//Métodos utilitários INICIO **************************************************************
-
-void mostrarImagem(std::string janela, cv::Mat imageRGB, int seconds)
-{
-    cv::imshow(janela, imageRGB);
-    cv::waitKey(seconds * 1000);
-    cv::destroyWindow(janela);
-}
-
-std::string buscarImagem()
-{
-    std::string pathImage;
-    std::string imagem = "imagem.jpg";
-    pathImage = "../sourceAssets/" + imagem;
-    return pathImage;
-}
-
-cv::Mat gerarImagemCinza()
-{
-    std::string pathImage = buscarImagem();
-    cv::Mat imagemOriginal = cv::imread(pathImage, cv::IMREAD_GRAYSCALE);
-    cv::imwrite("../output/imagem_gray.jpg", imagemOriginal);
-    return imagemOriginal;
-}
-
-//Exercícios INICIO **********************************************************************
 
 void Exercicio1()
 {
