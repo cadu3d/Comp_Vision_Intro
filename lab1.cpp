@@ -257,7 +257,7 @@ void Exercicio6()
     cv::Mat comparcao;
     cv::hconcat(images, comparcao); // all side by side
 
-    mostrarImagem("Preto & Branco", comparcao, 6);
+    mostrarImagem("Comparação: imagem com 128, 64, 16 e 4 níveis de intensidade", comparcao, 6);
 
 
     selExercicioGUI();
