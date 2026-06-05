@@ -3,3 +3,18 @@ output/**
 !output/
 !output/**/
 !output/**/.gitkeep
+
+# Ignore local CMake build files.
+cmake-build-*/
+build/
+
+# Lab 3 dataset images are local media.
+input/Lab_03/
+
+# Do not track image/media changes.
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tif
+*.tiff

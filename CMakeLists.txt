@@ -7,8 +7,10 @@ add_executable(Comp_Vision_Intro
     main.cpp
     lab1.cpp
     lab2.cpp
+    lab3.cpp
         utils.cpp
         utils.h
+        lab3.cpp
 )
 
 find_package(OpenCV REQUIRED)

@@ -10,12 +10,6 @@
 void transformadaHough();
 void preProcImagem(int filtro);
 
-void gaussiano();
-void mediana();
-void suavizacao();
-void equalizacao();
-void bordas();
-
 struct HoughParams
 {
     double dp = 1.2;
@@ -80,99 +74,23 @@ void runLab2()
 
 void preProcImagem(int filtro)
 {
-    switch (filtro)
+    if (filtro < 1 || filtro > 5)
     {
-    case 1:
-        gaussiano();
-        break;
-    case 2:
-        mediana();
-        break;
-    case 3:
-        suavizacao();
-        break;
-    case 4:
-        equalizacao();
-        break;
-    case 5:
-        bordas();
-        break;
-    default:
         std::cout << "Filtro invalido" << std::endl;
-        break;
+        runLab2();
+        return;
     }
 
+    std::vector<cv::Mat> imagens = buscarImagens();
+
+    for (int i = 0; i < imagens.size(); ++i)
+    {
+        cv::Mat result = preProcessarImagem(imagens[i], filtro);
+        gravaImagem(result, i);
+    }
+
+    std::cout << nomePreProcessamento(filtro) << " aplicado em " << imagens.size() << " imagens." << std::endl;
     runLab2();
-}
-
-void gaussiano()
-{
-    std::vector<cv::Mat> imagens = buscarImagens();
-
-    for (int i = 0; i < imagens.size(); ++i)
-    {
-        cv::Mat result;
-        cv::GaussianBlur(imagens[i], result, cv::Size(9, 9), 0);
-        gravaImagem(result, i);
-    }
-
-    std::cout << "Filtro Gaussiano aplicado em " << imagens.size() << " imagens." << std::endl;
-}
-
-void mediana()
-{
-    std::vector<cv::Mat> imagens = buscarImagens();
-
-    for (int i = 0; i < imagens.size(); ++i)
-    {
-        cv::Mat result;
-        cv::medianBlur(imagens[i], result, 5);
-        gravaImagem(result, i);
-    }
-
-    std::cout << "Filtro Mediana aplicado em " << imagens.size() << " imagens." << std::endl;
-}
-
-void suavizacao()
-{
-    std::vector<cv::Mat> imagens = buscarImagens();
-
-    for (int i = 0; i < imagens.size(); ++i)
-    {
-        cv::Mat result;
-        cv::blur(imagens[i], result, cv::Size(5, 5));
-        gravaImagem(result, i);
-    }
-
-    std::cout << "Suavizacao aplicada em " << imagens.size() << " imagens." << std::endl;
-}
-
-void equalizacao()
-{
-    std::vector<cv::Mat> imagens = buscarImagens();
-
-    for (int i = 0; i < imagens.size(); ++i)
-    {
-        cv::Mat result;
-        cv::equalizeHist(imagens[i], result);
-        gravaImagem(result, i);
-    }
-
-    std::cout << "Equalizacao aplicada em " << imagens.size() << " imagens." << std::endl;
-}
-
-void bordas()
-{
-    std::vector<cv::Mat> imagens = buscarImagens();
-
-    for (int i = 0; i < imagens.size(); ++i)
-    {
-        cv::Mat result;
-        cv::Canny(imagens[i], result, 80, 160);
-        gravaImagem(result, i);
-    }
-
-    std::cout << "Bordas aplicadas em " << imagens.size() << " imagens." << std::endl;
 }
 
 void mostrarParametrosHough(const HoughParams& params)

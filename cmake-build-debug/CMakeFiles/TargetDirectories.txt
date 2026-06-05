@@ -1,3 +1,0 @@
-C:/Users/cadu3d/CODE/Comp_Vision_Intro/cmake-build-debug/CMakeFiles/Comp_Vision_Intro.dir
-C:/Users/cadu3d/CODE/Comp_Vision_Intro/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/cadu3d/CODE/Comp_Vision_Intro/cmake-build-debug/CMakeFiles/rebuild_cache.dir

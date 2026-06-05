@@ -5,6 +5,7 @@
 
 void runLab1();
 void runLab2();
+void runLab3();
 
 
 void showLabMenu()
@@ -14,7 +15,7 @@ void showLabMenu()
     while (true)
     {
         std::cout << "\n";
-        std::cout << "Selecione um LAB de 1 a 2, (0 -> FECHAR):" << std::endl;
+        std::cout << "Selecione um LAB de 1 a 3, (0 -> FECHAR):" << std::endl;
         std::cout << "> ";
         std::cin >> labNumber;
 
@@ -28,6 +29,9 @@ void showLabMenu()
             break;
         case 2:
             runLab2();
+            break;
+        case 3:
+            runLab3();
             break;
         default:
             std::cout << "Lab inválido." << std::endl;

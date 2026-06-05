@@ -1,4 +1,0 @@
-C:\Users\cadu3d\AppData\Local\Programs\CLion\bin\cmake\win\x64\bin\cmake.exe -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=C:/Users/cadu3d/AppData/Local/Programs/CLion/bin/ninja/win/x64/ninja.exe -DCMAKE_TOOLCHAIN_FILE=C:/Users/cadu3d/CODE/vcpkg/scripts/buildsystems/vcpkg.cmake -G Ninja -S C:\Users\cadu3d\CODE\Comp_Vision_Intro -B C:\Users\cadu3d\CODE\Comp_Vision_Intro\cmake-build-debug
--- Configuring done (0.8s)
--- Generating done (0.1s)
--- Build files have been written to: C:/Users/cadu3d/CODE/Comp_Vision_Intro/cmake-build-debug

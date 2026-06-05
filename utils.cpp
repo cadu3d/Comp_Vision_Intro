@@ -109,14 +109,14 @@ std::vector<ImagemCarregada> carregarImagensComNomes(const std::filesystem::path
 std::filesystem::path verificarOutput()
 {
     std::filesystem::path outputDir;
-    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_2" / "preProcessadas";
+    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_02" / "preProcessadas";
 
     std::filesystem::path sourcetDir;
-    sourcetDir = std::filesystem::path(PROJECT_ROOT) / "input" / "Lab_2" ;
+    sourcetDir = std::filesystem::path(PROJECT_ROOT) / "input" / "Lab_02" ;
 
     if (!std::filesystem::exists(outputDir) || std::filesystem::is_empty(outputDir))
     {
-        outputDir = std::filesystem::path(PROJECT_ROOT) / "input" / "Lab_2";
+        outputDir = std::filesystem::path(PROJECT_ROOT) / "input" / "Lab_02";
         std::cout << "Pre Processando imagens originais, no dir: " + outputDir.string() << std::endl;
         return sourcetDir;
     }
@@ -152,7 +152,7 @@ cv::Mat gerarImagemCinza()
 void gravaImagem(cv::Mat result)
 {
     std::filesystem::path outputDir;
-    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_2" / "preProcessadas" / "result.png";
+    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_02" / "preProcessadas" / "result.png";
     cv::imwrite(outputDir.string() , result);
 }
 
@@ -164,7 +164,7 @@ void gravaImagem(cv::Mat result, int index)
 void gravaImagem(cv::Mat result, int index, std::string folder)
 {
     std::filesystem::path outputDir;
-    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_2" / folder;
+    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_02" / folder;
     std::filesystem::create_directories(outputDir);
 
     std::filesystem::path outputPath = outputDir / ("resultado_" + std::to_string(index) + ".png");
@@ -174,7 +174,7 @@ void gravaImagem(cv::Mat result, int index, std::string folder)
 void gravaImagem(cv::Mat result, const std::string& name, std::string folder)
 {
     std::filesystem::path outputDir;
-    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_2" / folder;
+    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_02" / folder;
     std::filesystem::create_directories(outputDir);
 
     std::string outputName = name;
@@ -192,7 +192,7 @@ void gravaImagem(cv::Mat result, const std::string& name, std::string folder)
 void limparOutput()
 {
     const std::filesystem::path lab2OutputDir =
-        std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_2";
+        std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_02";
 
     const std::vector<std::filesystem::path> foldersParaLimpar = {
         lab2OutputDir / "preProcessadas",
