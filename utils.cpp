@@ -16,6 +16,51 @@ namespace
     {
         return PROJECT_ROOT;
     }
+
+    std::filesystem::path preProcessadasDir()
+    {
+        return projectRoot() / "output" / "preProcessadas";
+    }
+
+    std::filesystem::path lab2InputDir()
+    {
+        return projectRoot() / "input" / "Lab_2";
+    }
+
+    std::filesystem::path outputDir(const std::string& folder)
+    {
+        if (folder == "preProcessadas")
+        {
+            return preProcessadasDir();
+        }
+
+        if (folder == "transformadasHough")
+        {
+            return projectRoot() / "output" / "Lab_2" / "transformadasHough";
+        }
+
+        return projectRoot() / "output" / folder;
+    }
+
+    bool temImagem(const std::filesystem::path& folder)
+    {
+        if (!std::filesystem::exists(folder))
+        {
+            return false;
+        }
+
+        for (const auto& entry : std::filesystem::directory_iterator(folder))
+        {
+            std::string ext = entry.path().extension().string();
+
+            if (ext == ".jpg" || ext == ".jpeg" || ext == ".png")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
 
 std::vector<cv::Mat> carregarImagens(const std::filesystem::path& folder);
@@ -108,27 +153,23 @@ std::vector<ImagemCarregada> carregarImagensComNomes(const std::filesystem::path
 
 std::filesystem::path verificarOutput()
 {
-    std::filesystem::path outputDir;
-    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_02" / "preProcessadas";
+    std::filesystem::path outputDir = preProcessadasDir();
+    std::filesystem::path sourceDir = lab2InputDir();
 
-    std::filesystem::path sourcetDir;
-    sourcetDir = std::filesystem::path(PROJECT_ROOT) / "input" / "Lab_02" ;
-
-    if (!std::filesystem::exists(outputDir) || std::filesystem::is_empty(outputDir))
+    if (!temImagem(outputDir))
     {
-        outputDir = std::filesystem::path(PROJECT_ROOT) / "input" / "Lab_02";
-        std::cout << "Pre Processando imagens originais, no dir: " + outputDir.string() << std::endl;
-        return sourcetDir;
+        std::cout << "Pre Processando imagens originais, no dir: " + sourceDir.string() << std::endl;
+        return sourceDir;
     }
-    std::cout << "Pre Processando imagens já existentes, no dir: " + outputDir.string() << std::endl;
-    return outputDir;
 
+    std::cout << "Pre Processando imagens ja existentes, no dir: " + outputDir.string() << std::endl;
+    return outputDir;
 }
 
 std::filesystem::path buscarImagem()
 {
 
-    const std::filesystem::path pathImage = std::filesystem::path(PROJECT_ROOT) / "input"/ "imagem.jpg";
+    const std::filesystem::path pathImage = projectRoot() / "input" / "lab_1" / "imagem.jpg";
     return pathImage;
 
 }
@@ -151,9 +192,8 @@ cv::Mat gerarImagemCinza()
 
 void gravaImagem(cv::Mat result)
 {
-    std::filesystem::path outputDir;
-    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_02" / "preProcessadas" / "result.png";
-    cv::imwrite(outputDir.string() , result);
+    std::filesystem::create_directories(preProcessadasDir());
+    cv::imwrite((preProcessadasDir() / "result.png").string() , result);
 }
 
 void gravaImagem(cv::Mat result, int index)
@@ -163,19 +203,17 @@ void gravaImagem(cv::Mat result, int index)
 
 void gravaImagem(cv::Mat result, int index, std::string folder)
 {
-    std::filesystem::path outputDir;
-    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_02" / folder;
-    std::filesystem::create_directories(outputDir);
+    std::filesystem::path destino = outputDir(folder);
+    std::filesystem::create_directories(destino);
 
-    std::filesystem::path outputPath = outputDir / ("resultado_" + std::to_string(index) + ".png");
+    std::filesystem::path outputPath = destino / ("resultado_" + std::to_string(index) + ".png");
     cv::imwrite(outputPath.string(), result);
 }
 
 void gravaImagem(cv::Mat result, const std::string& name, std::string folder)
 {
-    std::filesystem::path outputDir;
-    outputDir = std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_02" / folder;
-    std::filesystem::create_directories(outputDir);
+    std::filesystem::path destino = outputDir(folder);
+    std::filesystem::create_directories(destino);
 
     std::string outputName = name;
 
@@ -184,19 +222,16 @@ void gravaImagem(cv::Mat result, const std::string& name, std::string folder)
         outputName = outputName.substr(10);
     }
 
-    std::filesystem::path outputPath = outputDir / ("resultado_" + outputName + ".png");
+    std::filesystem::path outputPath = destino / ("resultado_" + outputName + ".png");
     cv::imwrite(outputPath.string(), result);
 }
 
 
 void limparOutput()
 {
-    const std::filesystem::path lab2OutputDir =
-        std::filesystem::path(PROJECT_ROOT) / "output" / "Lab_02";
-
     const std::vector<std::filesystem::path> foldersParaLimpar = {
-        lab2OutputDir / "preProcessadas",
-        lab2OutputDir / "transformadasHough"
+        preProcessadasDir(),
+        projectRoot() / "output" / "Lab_2" / "transformadasHough"
     };
 
     int removidas = 0;

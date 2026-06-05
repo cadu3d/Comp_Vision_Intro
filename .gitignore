@@ -9,7 +9,7 @@ cmake-build-*/
 build/
 
 # Lab 3 dataset images are local media.
-input/Lab_03/
+input/Lab_3/
 
 # Do not track image/media changes.
 *.jpg
