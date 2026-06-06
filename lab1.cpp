@@ -88,7 +88,9 @@ void Exercicio2()
     //dúvida: usar IMREAD_GRAYSCALE OU RGB2GRAY?
     cv::Mat imagemOriginal;
     cv::cvtColor(imageRGB, imagemOriginal, cv::COLOR_RGB2GRAY);
-    cv::imwrite("../output/imagem_gray.jpg", imagemOriginal);
+    const std::filesystem::path outputPath = lab1OutputImagemCinza();
+    std::filesystem::create_directories(outputPath.parent_path());
+    cv::imwrite(outputPath.string(), imagemOriginal);
     std::cout << "A imagem em tons de cinza foi gravada em disco" << std::endl;
 
     //Mostrar imagem colorida e convertida para tons de cinza

@@ -8,9 +8,11 @@ add_executable(Comp_Vision_Intro
     lab1.cpp
     lab2.cpp
     lab3.cpp
-        utils.cpp
-        utils.h
-        lab3.cpp
+    labFinal.cpp
+    filters.cpp
+    filters.h
+    utils.cpp
+    utils.h
 )
 
 find_package(OpenCV REQUIRED)

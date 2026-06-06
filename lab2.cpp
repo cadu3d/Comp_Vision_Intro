@@ -5,10 +5,10 @@
 
 #include <opencv2/opencv.hpp>
 
+#include "filters.h"
 #include "utils.h"
 
 void transformadaHough();
-void preProcImagem(int filtro);
 
 struct HoughParams
 {
@@ -31,10 +31,10 @@ void runLab2()
 
     std::cout << "\n";
     std::cout << "LAB 02 - TRANSFORMADA DE HOUGH, (0 -> VOLTAR): " << std::endl;
-    std::cout << "1 -> Pré-Processar" << std::endl;
-    std::cout << "2 -> Configurar parâmetros de Hough" << std::endl;
-    std::cout << "3 -> Aplicar Transformada de Hough" << std::endl;
-    std::cout << "4 -> Reset (deleta imagens pré-processadas)" << std::endl;
+    std::cout << "1 -> Reset (deleta imagens pre-processadas e outputs)" << std::endl;
+    std::cout << "2 -> Pre-Processar" << std::endl;
+    std::cout << "3 -> Configurar parametros de Hough" << std::endl;
+    std::cout << "4 -> Aplicar Transformada de Hough" << std::endl;
     std::cin >> processar;
 
     switch (processar)
@@ -42,55 +42,28 @@ void runLab2()
     case 0:
         return;
     case 1:
+        limparOutput(2);
+        runLab2();
+        break;
+    case 2:
     {
-        int var;
-        std::cout
-            << "1 -> Gaussiano\n"
-            << "2 -> Mediana\n"
-            << "3 -> Suavizacao\n"
-            << "4 -> Equalizacao\n"
-            << "5 -> Borda\n";
-        std::cin >> var;
-        preProcImagem(var);
+        int filtro = Filters::menuPreProcImagem();
+        Filters::preProcImagem(filtro);
+        runLab2();
         break;
     }
-    case 2:
+    case 3:
         configurarHough();
         runLab2();
         break;
-    case 3:
-        transformadaHough();
-        break;
     case 4:
-        limparOutput();
-        runLab2();
+        transformadaHough();
         break;
     default:
         std::cout << "Escolha invalida" << std::endl;
         runLab2();
         break;
     }
-}
-
-void preProcImagem(int filtro)
-{
-    if (filtro < 1 || filtro > 5)
-    {
-        std::cout << "Filtro invalido" << std::endl;
-        runLab2();
-        return;
-    }
-
-    std::vector<cv::Mat> imagens = buscarImagens();
-
-    for (int i = 0; i < imagens.size(); ++i)
-    {
-        cv::Mat result = preProcessarImagem(imagens[i], filtro);
-        gravaImagem(result, i);
-    }
-
-    std::cout << nomePreProcessamento(filtro) << " aplicado em " << imagens.size() << " imagens." << std::endl;
-    runLab2();
 }
 
 void mostrarParametrosHough(const HoughParams& params)
@@ -164,10 +137,12 @@ void transformadaHough()
             cv::circle(result, center, 3, cv::Scalar(0, 0, 255), -1);
         }
 
-        gravaImagem(result, i, "transformadasHough");
+        gravaImagem(result, i, "Lab_2");
     }
 
-    std::cout << "Transformada de Hough aplicada em " << imagens.size() << " imagens." << std::endl;
+    std::cout << "Transformada de Hough aplicada em " << imagens.size()
+        << " " << verificarOrigemOutput() << "." << std::endl;
 
     runLab2();
 }
+

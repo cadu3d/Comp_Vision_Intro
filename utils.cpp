@@ -12,19 +12,19 @@
 
 namespace
 {
-    std::filesystem::path projectRoot()
-    {
-        return PROJECT_ROOT;
-    }
-
     std::filesystem::path preProcessadasDir()
     {
-        return projectRoot() / "output" / "preProcessadas";
+        return projectRoot() / "output" / "Lab_2" / "preProcessadas";
     }
 
     std::filesystem::path lab2InputDir()
     {
         return projectRoot() / "input" / "Lab_2";
+    }
+
+    std::filesystem::path lab1OutputDir()
+    {
+        return projectRoot() / "output" / "Lab_1";
     }
 
     std::filesystem::path outputDir(const std::string& folder)
@@ -34,37 +34,15 @@ namespace
             return preProcessadasDir();
         }
 
-        if (folder == "transformadasHough")
-        {
-            return projectRoot() / "output" / "Lab_2" / "transformadasHough";
-        }
-
         return projectRoot() / "output" / folder;
     }
 
-    bool temImagem(const std::filesystem::path& folder)
-    {
-        if (!std::filesystem::exists(folder))
-        {
-            return false;
-        }
-
-        for (const auto& entry : std::filesystem::directory_iterator(folder))
-        {
-            std::string ext = entry.path().extension().string();
-
-            if (ext == ".jpg" || ext == ".jpeg" || ext == ".png")
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }
 
-std::vector<cv::Mat> carregarImagens(const std::filesystem::path& folder);
-std::vector<ImagemCarregada> carregarImagensComNomes(const std::filesystem::path& folder);
+std::filesystem::path projectRoot()
+{
+    return PROJECT_ROOT;
+}
 
 void mostrarImagem(std::string janela, cv::Mat imageRGB, int seconds)
 {
@@ -83,6 +61,26 @@ std::vector<ImagemCarregada> buscarImagensComNomes()
 {
     std::filesystem::path sourceDir = verificarOutput();
     return carregarImagensComNomes(sourceDir);
+}
+
+bool temImagem(const std::filesystem::path& folder)
+{
+    if (!std::filesystem::exists(folder))
+    {
+        return false;
+    }
+
+    for (const auto& entry : std::filesystem::directory_iterator(folder))
+    {
+        std::string ext = entry.path().extension().string();
+
+        if (ext == ".jpg" || ext == ".jpeg" || ext == ".png")
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 std::vector<cv::Mat> carregarImagens(const std::filesystem::path& folder)
@@ -158,12 +156,20 @@ std::filesystem::path verificarOutput()
 
     if (!temImagem(outputDir))
     {
-        std::cout << "Pre Processando imagens originais, no dir: " + sourceDir.string() << std::endl;
         return sourceDir;
     }
 
-    std::cout << "Pre Processando imagens ja existentes, no dir: " + outputDir.string() << std::endl;
     return outputDir;
+}
+
+std::string verificarOrigemOutput()
+{
+    if (!temImagem(preProcessadasDir()))
+    {
+        return "imagens originais";
+    }
+
+    return "imagens pre-processadas";
 }
 
 std::filesystem::path buscarImagem()
@@ -172,6 +178,12 @@ std::filesystem::path buscarImagem()
     const std::filesystem::path pathImage = projectRoot() / "input" / "lab_1" / "imagem.jpg";
     return pathImage;
 
+}
+
+
+std::filesystem::path lab1OutputImagemCinza()
+{
+    return lab1OutputDir() / "imagem_gray.jpg";
 }
 
 
@@ -185,7 +197,8 @@ cv::Mat gerarImagemCinza()
         throw std::runtime_error("Nao foi possivel carregar a imagem em: " + pathImage.string());
     }
 
-    const std::filesystem::path outputPath = projectRoot() / "output" / "imagem_gray.jpg";
+    const std::filesystem::path outputPath = lab1OutputImagemCinza();
+    std::filesystem::create_directories(outputPath.parent_path());
     cv::imwrite(outputPath.string(), imagemOriginal);
     return imagemOriginal;
 }
@@ -227,44 +240,32 @@ void gravaImagem(cv::Mat result, const std::string& name, std::string folder)
 }
 
 
-void limparOutput()
+void limparOutput(int lab)
 {
-    const std::vector<std::filesystem::path> foldersParaLimpar = {
-        preProcessadasDir(),
-        projectRoot() / "output" / "Lab_2" / "transformadasHough"
-    };
+    limparOutput("Lab_" + std::to_string(lab));
+}
 
+void limparOutput(std::string lab)
+{
+    std::filesystem::path folder = projectRoot() / "output" / lab;
     int removidas = 0;
 
-    for (const std::filesystem::path& folder : foldersParaLimpar)
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(folder))
     {
-        if (!std::filesystem::exists(folder))
+        const std::filesystem::path path = entry.path();
+        const std::string ext = path.extension().string();
+
+        if (
+            ext == ".jpg" ||
+            ext == ".jpeg" ||
+            ext == ".png" ||
+            ext == ".bmp" ||
+            ext == ".tif" ||
+            ext == ".tiff"
+        )
         {
-            continue;
-        }
-
-        for (const auto& entry : std::filesystem::directory_iterator(folder))
-        {
-            if (!entry.is_regular_file())
-            {
-                continue;
-            }
-
-            const std::filesystem::path path = entry.path();
-            const std::string ext = path.extension().string();
-
-            if (
-                ext == ".jpg" ||
-                ext == ".jpeg" ||
-                ext == ".png" ||
-                ext == ".bmp" ||
-                ext == ".tif" ||
-                ext == ".tiff"
-            )
-            {
-                std::filesystem::remove(path);
-                ++removidas;
-            }
+            std::filesystem::remove(path);
+            ++removidas;
         }
     }
 
