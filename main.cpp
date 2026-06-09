@@ -16,9 +16,13 @@ void showLabMenu()
     while (true)
     {
         std::cout << "\n";
-        std::cout << "Selecione um LAB de 1 a 3, ou" << std::endl;
-        std::cout << "4 para Projeto Final " << std::endl;
-        std::cout << "0 para FECHAR" << std::endl;
+        std::cout << "Selecione um LAB:" << std::endl;
+        std::cout << "1 -> Lab1" << std::endl;
+        std::cout << "2 -> Lab2" << std::endl;
+        std::cout << "3 -> Lab3" << std::endl;
+        std::cout << "4 -> Projeto Final" << std::endl;
+        std::cout << "-------------------" << std::endl;
+        std::cout << "0 -> FECHAR" << std::endl;
         std::cout << "> ";
         std::cin >> labNumber;
 

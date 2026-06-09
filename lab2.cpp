@@ -15,7 +15,7 @@ struct HoughParams
     double dp = 1.2;
     double minDist = 100;
     double param1 = 120;
-    double param2 = 34;
+    double param2 = 35;
     int minRadius = 80;
     int maxRadius = 250;
 };
@@ -47,8 +47,30 @@ void runLab2()
         break;
     case 2:
     {
-        int filtro = Filters::menuPreProcImagem();
-        Filters::preProcImagem(filtro);
+        while (true)
+        {
+            std::string filtro = Filters::menuPreProcImagem();
+
+            if (filtro == "0")
+            {
+                break;
+            }
+
+            if (filtro == "00")
+            {
+                limparOutput(2);
+                continue;
+            }
+
+            try
+            {
+                Filters::preProcImagem(std::stoi(filtro));
+            }
+            catch (const std::exception&)
+            {
+                std::cout << "Filtro invalido" << std::endl;
+            }
+        }
         runLab2();
         break;
     }
@@ -91,7 +113,7 @@ void configurarHough()
     std::cout << "param1 - limiar alto do Canny interno (padrao 120): ";
     std::cin >> houghParams.param1;
 
-    std::cout << "param2 - limiar do acumulador Hough (padrao 34): ";
+    std::cout << "param2 - limiar do acumulador Hough (padrao 70): ";
     std::cin >> houghParams.param2;
 
     std::cout << "minRadius - raio minimo (padrao 80): ";
