@@ -8,22 +8,18 @@
 #include "filters.h"
 #include "utils.h"
 
-void transformadaHough();
-
-struct HoughParams
-{
-    double dp = 1.2;
-    double minDist = 100;
-    double param1 = 120;
-    double param2 = 35;
-    int minRadius = 80;
-    int maxRadius = 250;
-};
-
-HoughParams houghParams;
-
 void configurarHough();
-void mostrarParametrosHough(const HoughParams& params);
+void mostrarParametrosHough();
+void transformarHough();
+void menuPreProcessamentoLab2();
+
+// Parametros que controlam a deteccao de circulos.
+double houghDp = 1.2;
+double houghMinDist = 100;
+double houghParam1 = 120;
+double houghParam2 = 35;
+int houghMinRadius = 80;
+int houghMaxRadius = 250;
 
 void runLab2()
 {
@@ -46,40 +42,15 @@ void runLab2()
         runLab2();
         break;
     case 2:
-    {
-        while (true)
-        {
-            std::string filtro = Filters::menuPreProcImagem();
-
-            if (filtro == "0")
-            {
-                break;
-            }
-
-            if (filtro == "00")
-            {
-                limparOutput(2);
-                continue;
-            }
-
-            try
-            {
-                Filters::preProcImagem(std::stoi(filtro));
-            }
-            catch (const std::exception&)
-            {
-                std::cout << "Filtro invalido" << std::endl;
-            }
-        }
+        menuPreProcessamentoLab2();
         runLab2();
         break;
-    }
     case 3:
         configurarHough();
         runLab2();
         break;
     case 4:
-        transformadaHough();
+        transformarHough();
         break;
     default:
         std::cout << "Escolha invalida" << std::endl;
@@ -88,14 +59,43 @@ void runLab2()
     }
 }
 
-void mostrarParametrosHough(const HoughParams& params)
+void menuPreProcessamentoLab2()
 {
-    std::cout << "dp = " << params.dp << std::endl;
-    std::cout << "minDist = " << params.minDist << std::endl;
-    std::cout << "param1 = " << params.param1 << std::endl;
-    std::cout << "param2 = " << params.param2 << std::endl;
-    std::cout << "minRadius = " << params.minRadius << std::endl;
-    std::cout << "maxRadius = " << params.maxRadius << std::endl;
+    while (true)
+    {
+        std::string filtro = Filters::menuPreProcImagem();
+
+        if (filtro == "0")
+        {
+            break;
+        }
+
+        if (filtro == "00")
+        {
+            limparOutput(2);
+            continue;
+        }
+
+        // Aplicar o filtro escolhido pelo usuario.
+        try
+        {
+            Filters::preProcImagem(std::stoi(filtro));
+        }
+        catch (const std::exception&)
+        {
+            std::cout << "Filtro invalido" << std::endl;
+        }
+    }
+}
+
+void mostrarParametrosHough()
+{
+    std::cout << "dp = " << houghDp << std::endl;
+    std::cout << "minDist = " << houghMinDist << std::endl;
+    std::cout << "param1 = " << houghParam1 << std::endl;
+    std::cout << "param2 = " << houghParam2 << std::endl;
+    std::cout << "minRadius = " << houghMinRadius << std::endl;
+    std::cout << "maxRadius = " << houghMaxRadius << std::endl;
 }
 
 void configurarHough()
@@ -104,29 +104,30 @@ void configurarHough()
     std::cout << "CONFIGURAR HOUGH CIRCLES" << std::endl;
     std::cout << "\n";
 
+    // Ler os parametros usados pela funcao HoughCircles.
     std::cout << "dp (padrao 1.2): ";
-    std::cin >> houghParams.dp;
+    std::cin >> houghDp;
 
     std::cout << "minDist - distancia minima entre centros (padrao 100): ";
-    std::cin >> houghParams.minDist;
+    std::cin >> houghMinDist;
 
     std::cout << "param1 - limiar alto do Canny interno (padrao 120): ";
-    std::cin >> houghParams.param1;
+    std::cin >> houghParam1;
 
-    std::cout << "param2 - limiar do acumulador Hough (padrao 70): ";
-    std::cin >> houghParams.param2;
+    std::cout << "param2 - limiar do acumulador Hough (padrao 35): ";
+    std::cin >> houghParam2;
 
     std::cout << "minRadius - raio minimo (padrao 80): ";
-    std::cin >> houghParams.minRadius;
+    std::cin >> houghMinRadius;
 
     std::cout << "maxRadius - raio maximo (padrao 250): ";
-    std::cin >> houghParams.maxRadius;
+    std::cin >> houghMaxRadius;
 
     std::cout << "\nParametros usados:" << std::endl;
-    mostrarParametrosHough(houghParams);
+    mostrarParametrosHough();
 }
 
-void transformadaHough()
+void transformarHough()
 {
     std::vector<cv::Mat> imagens = buscarImagens();
 
@@ -134,29 +135,31 @@ void transformadaHough()
     {
         cv::Mat imagemCinza = imagens[i].clone();
 
+        // Encontrar os circulos na imagem em tons de cinza.
         std::vector<cv::Vec3f> coordCirculos;
         cv::HoughCircles(
             imagemCinza,
             coordCirculos,
             cv::HOUGH_GRADIENT,
-            houghParams.dp,
-            houghParams.minDist,
-            houghParams.param1,
-            houghParams.param2,
-            houghParams.minRadius,
-            houghParams.maxRadius
+            houghDp,
+            houghMinDist,
+            houghParam1,
+            houghParam2,
+            houghMinRadius,
+            houghMaxRadius
         );
 
+        // Converter para BGR para desenhar os circulos coloridos.
         cv::Mat result;
         cv::cvtColor(imagemCinza, result, cv::COLOR_GRAY2BGR);
 
-        for (const cv::Vec3f& circle : coordCirculos)
+        for (const cv::Vec3f& circulo : coordCirculos)
         {
-            cv::Point center(cvRound(circle[0]), cvRound(circle[1]));
-            int radius = cvRound(circle[2]);
+            cv::Point centro(cvRound(circulo[0]), cvRound(circulo[1]));
+            int raio = cvRound(circulo[2]);
 
-            cv::circle(result, center, radius, cv::Scalar(0, 255, 0), 3);
-            cv::circle(result, center, 3, cv::Scalar(0, 0, 255), -1);
+            cv::circle(result, centro, raio, cv::Scalar(0, 255, 0), 3);
+            cv::circle(result, centro, 3, cv::Scalar(0, 0, 255), -1);
         }
 
         gravaImagem(result, i, "Lab_2");
@@ -167,4 +170,3 @@ void transformadaHough()
 
     runLab2();
 }
-

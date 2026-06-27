@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <iostream>
 #include <opencv2/opencv.hpp>
@@ -9,6 +10,8 @@
 
 namespace
 {
+    constexpr int distanciaMinimaBordaCentro = 10;
+
     int normalizarTamanhoFiltro(int tamanhoFiltro)
     {
         if (tamanhoFiltro < 1)
@@ -27,6 +30,108 @@ namespace
     void salvarResultado(const cv::Mat& imagem, const std::filesystem::path& destino, int index)
     {
         cv::imwrite((destino / ("resultado_" + std::to_string(index) + ".png")).string(), imagem);
+    }
+
+    void salvarResultado(const cv::Mat& imagem, const std::filesystem::path& destino, const std::string& nome)
+    {
+        cv::imwrite((destino / (nome + ".png")).string(), imagem);
+    }
+
+    bool ehExtensaoImagem(const std::filesystem::path& path)
+    {
+        std::string ext = path.extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c)
+        {
+            return static_cast<char>(std::tolower(c));
+        });
+
+        return ext == ".jpg" || ext == ".jpeg" || ext == ".png";
+    }
+
+    bool terminaCom(const std::string& texto, const std::string& sufixo)
+    {
+        return texto.size() >= sufixo.size()
+            && texto.compare(texto.size() - sufixo.size(), sufixo.size(), sufixo) == 0;
+    }
+
+    std::string nomeBaseSemSufixos(std::string nome)
+    {
+        const std::vector<std::string> sufixos = {
+            "_Gaussiano",
+            "_Mediana",
+            "_Suavizacao",
+            "_Equalizacao",
+            "_Borda",
+            "_Contraste",
+            "_Otsu",
+            "_Gamma",
+            "_Esqueleto",
+            "_LimparMidia",
+            "_Mascara",
+            "_Forma",
+            "_Centro",
+            "_Grafico"
+        };
+
+        bool removeuSufixo = true;
+        while (removeuSufixo)
+        {
+            removeuSufixo = false;
+
+            for (const std::string& sufixo : sufixos)
+            {
+                if (terminaCom(nome, sufixo))
+                {
+                    nome.erase(nome.size() - sufixo.size());
+                    removeuSufixo = true;
+                    break;
+                }
+            }
+        }
+
+        return nome;
+    }
+
+    std::string nomeComSufixo(const std::string& nome, const std::string& sufixo)
+    {
+        return nomeBaseSemSufixos(nome) + "_" + sufixo;
+    }
+
+    void limparImagensDoDiretorio(const std::filesystem::path& destino)
+    {
+        if (!std::filesystem::exists(destino))
+        {
+            return;
+        }
+
+        for (const auto& entry : std::filesystem::directory_iterator(destino))
+        {
+            if (entry.is_regular_file() && ehExtensaoImagem(entry.path()))
+            {
+                std::filesystem::remove(entry.path());
+            }
+        }
+    }
+
+    void limparImagensComSufixo(const std::filesystem::path& destino, const std::string& sufixo)
+    {
+        if (!std::filesystem::exists(destino))
+        {
+            return;
+        }
+
+        for (const auto& entry : std::filesystem::directory_iterator(destino))
+        {
+            if (!entry.is_regular_file() || !ehExtensaoImagem(entry.path()))
+            {
+                continue;
+            }
+
+            if (terminaCom(entry.path().stem().string(), sufixo))
+            {
+                std::filesystem::remove(entry.path());
+            }
+        }
     }
 
     cv::Mat dilatarContornoPreto(const cv::Mat& imagem, int tamanhoKernel = 3, int iteracoes = 1)
@@ -78,11 +183,8 @@ namespace
 
         constexpr int largura = 800;
         constexpr int altura = 400;
-        constexpr int margem = 40;
 
         cv::Mat grafico(altura, largura, CV_8UC3, cv::Scalar(255, 255, 255));
-        cv::line(grafico, cv::Point(margem, altura - margem), cv::Point(largura - margem, altura - margem), cv::Scalar(0, 0, 0), 1);
-        cv::line(grafico, cv::Point(margem, margem), cv::Point(margem, altura - margem), cv::Scalar(0, 0, 0), 1);
 
         double maiorDistancia = *std::max_element(distancias.begin(), distancias.end());
         if (maiorDistancia <= 0)
@@ -97,8 +199,8 @@ namespace
         {
             double xRatio = distancias.size() == 1 ? 0.0 : static_cast<double>(i) / (distancias.size() - 1);
             double yRatio = distancias[i] / maiorDistancia;
-            int x = margem + static_cast<int>(xRatio * (largura - 2 * margem));
-            int y = altura - margem - static_cast<int>(yRatio * (altura - 2 * margem));
+            int x = static_cast<int>(xRatio * (largura - 1));
+            int y = (altura - 1) - static_cast<int>(yRatio * (altura - 1));
             pontos.emplace_back(x, y);
         }
 
@@ -131,7 +233,11 @@ namespace
             if (xMax >= 0)
             {
                 int xMeio = (xMin + xMax) / 2;
-                pixelsMediosLinhas.at<uchar>(y, xMeio) = 255;
+                if ((xMeio - xMin) > distanciaMinimaBordaCentro
+                    && (xMax - xMeio) > distanciaMinimaBordaCentro)
+                {
+                    pixelsMediosLinhas.at<uchar>(y, xMeio) = 255;
+                }
             }
         }
 
@@ -152,7 +258,9 @@ namespace
             if (yMax >= 0)
             {
                 int yMeio = (yMin + yMax) / 2;
-                if (pixelsMediosLinhas.at<uchar>(yMeio, x) > 0)
+                if ((yMeio - yMin) > distanciaMinimaBordaCentro
+                    && (yMax - yMeio) > distanciaMinimaBordaCentro
+                    && pixelsMediosLinhas.at<uchar>(yMeio, x) > 0)
                 {
                     return cv::Point(x, yMeio);
                 }
@@ -160,6 +268,103 @@ namespace
         }
 
         return cv::Point(-1, -1);
+    }
+
+    std::vector<double> calcularDistanciasBordaCentro(const cv::Mat& mascaraForma, cv::Point& cruzamento)
+    {
+        cruzamento = encontrarCruzamentoPixelsMedios(mascaraForma);
+
+        if (cruzamento.x < 0)
+        {
+            return {};
+        }
+
+        std::vector<cv::Point> pixelsBorda = encontrarPixelsBorda(mascaraForma);
+        std::vector<double> distancias;
+        distancias.reserve(pixelsBorda.size());
+
+        for (const cv::Point& pixelBorda : pixelsBorda)
+        {
+            distancias.push_back(cv::norm(pixelBorda - cruzamento));
+        }
+
+        if (distancias.empty())
+        {
+            return {};
+        }
+
+        auto menorDistancia = std::min_element(distancias.begin(), distancias.end());
+        std::rotate(distancias.begin(), menorDistancia, distancias.end());
+
+        return distancias;
+    }
+
+    std::vector<double> suavizarDistanciasParaGrafico(const std::vector<double>& distancias)
+    {
+        if (distancias.size() < 3)
+        {
+            return distancias;
+        }
+
+        int tamanhoKernel = std::min(51, static_cast<int>(distancias.size()));
+        if (tamanhoKernel % 2 == 0)
+        {
+            --tamanhoKernel;
+        }
+
+        if (tamanhoKernel < 3)
+        {
+            return distancias;
+        }
+
+        cv::Mat vetor(static_cast<int>(distancias.size()), 1, CV_64F);
+        for (int i = 0; i < static_cast<int>(distancias.size()); ++i)
+        {
+            vetor.at<double>(i, 0) = distancias[i];
+        }
+
+        cv::Mat suavizado;
+        cv::GaussianBlur(vetor, suavizado, cv::Size(1, tamanhoKernel), 12.0, 12.0, cv::BORDER_REFLECT101);
+
+        std::vector<double> resultado;
+        resultado.reserve(distancias.size());
+
+        for (int i = 0; i < suavizado.rows; ++i)
+        {
+            resultado.push_back(suavizado.at<double>(i, 0));
+        }
+
+        return resultado;
+    }
+
+    std::vector<int> detectarPicosDistancias(const std::vector<double>& distancias)
+    {
+        std::vector<int> picos;
+
+        if (distancias.size() < 3)
+        {
+            return picos;
+        }
+
+        double maiorDistancia = *std::max_element(distancias.begin(), distancias.end());
+        double menorDistancia = *std::min_element(distancias.begin(), distancias.end());
+        double proeminenciaMinima = std::max(2.0, (maiorDistancia - menorDistancia) * 0.10);
+
+        for (int i = 1; i < static_cast<int>(distancias.size()) - 1; ++i)
+        {
+            double anterior = distancias[i - 1];
+            double atual = distancias[i];
+            double proximo = distancias[i + 1];
+
+            if (atual > anterior
+                && atual >= proximo
+                && (atual - std::max(anterior, proximo)) >= proeminenciaMinima)
+            {
+                picos.push_back(i);
+            }
+        }
+
+        return picos;
     }
 
     cv::Mat criarMascaraPixelsPretos(const cv::Mat& imagem)
@@ -171,7 +376,9 @@ namespace
         }
         else
         {
-            cv::cvtColor(imagem, cinza, cv::COLOR_BGR2GRAY);
+            cv::Mat mascaraForma;
+            cv::inRange(imagem, cv::Scalar(0, 0, 0), cv::Scalar(127, 127, 127), mascaraForma);
+            return mascaraForma;
         }
 
         cv::Mat mascaraForma;
@@ -186,24 +393,23 @@ namespace
     )
     {
         cv::Mat mascaraForma = criarMascaraPixelsPretos(imagem);
-        cv::Point cruzamento = encontrarCruzamentoPixelsMedios(mascaraForma);
+        cv::Point cruzamento;
+        std::vector<double> distancias = calcularDistanciasBordaCentro(mascaraForma, cruzamento);
 
-        if (cruzamento.x < 0)
+        if (distancias.empty())
         {
             return;
         }
 
-        std::vector<cv::Point> pixelsBorda = encontrarPixelsBorda(mascaraForma);
-        std::vector<double> distancias;
-        distancias.reserve(pixelsBorda.size());
-
-        for (const cv::Point& pixelBorda : pixelsBorda)
-        {
-            distancias.push_back(cv::norm(pixelBorda - cruzamento));
-        }
+        std::cout << "[Centro] Centro usado em (" << cruzamento.x << ", " << cruzamento.y << ")." << std::endl;
+        std::cout << "[Vetor] Vetor de distancia gerado com " << distancias.size() << " pontos." << std::endl;
+        distancias = suavizarDistanciasParaGrafico(distancias);
+        std::cout << "[Grafico] Suavizacao gaussiana agressiva aplicada ao vetor." << std::endl;
 
         std::filesystem::create_directories(destinoGraficos);
-        salvarGraficoDistancias(distancias, destinoGraficos / (nomeImagem + "_GRAPH.png"));
+        const std::filesystem::path destinoGrafico = destinoGraficos / (nomeImagem + ".png");
+        salvarGraficoDistancias(distancias, destinoGrafico);
+        std::cout << "[Grafico] Grafico salvo em: " << destinoGrafico.string() << std::endl;
     }
 }
 
@@ -227,7 +433,11 @@ std::string Filters::menuPreProcImagem()
         << "10 -> Limpar Midia\n"
         << "11 -> Mascara\n"
         << "12 -> Extrair Forma\n"
-        << "13 -> Pixels Medios\n"
+        << "\n"
+        << "----------- Analise Morfologica ------\n"
+        << "13 -> Gerar Centro\n"
+        << "14 -> Desenhar Grafico\n"
+        << "15 -> Analizar Grafico (Detectar Picos)\n"
         << "\n"
         << "------------------------------------\n"
         << "0 -> Voltar\n"
@@ -249,7 +459,7 @@ void Filters::preProcImagem(int filtro, std::string lab)
         return;
     }
 
-    if (filtro < 1 || filtro > 13)
+    if (filtro < 1 || filtro > 15)
     {
         std::cout << "Filtro invalido" << std::endl;
         return;
@@ -265,59 +475,177 @@ void Filters::preProcImagem(int filtro, std::string lab)
         origemMensagem = "imagens pre-processadas";
     }
 
-    std::vector<cv::Mat> imagens = carregarImagens(origem);
+    std::vector<ImagemCarregada> imagens = carregarImagensComNomes(origem);
     std::filesystem::create_directories(destino);
+
+    if (filtro >= 1 && filtro <= 13)
+    {
+        limparImagensDoDiretorio(destino);
+    }
 
     switch (filtro)
     {
     case 1:
-        filtroGaussiano(imagens, destino);
-        break;
-    case 2:
-        filtroMediana(imagens, destino);
-        break;
-    case 3:
-        filtroSuavizacao(imagens, destino);
-        break;
-    case 4:
-        filtroEqualizacao(imagens, destino);
-        break;
-    case 5:
-        filtroBorda(imagens, destino);
-        break;
-    case 6:
-        filtroNormalizacaoContraste(imagens, destino);
-        break;
-    case 7:
-        filtroLimiarOtsu(imagens, destino);
-        break;
-    case 8:
-        filtroGamma(imagens, destino);
-        break;
-    case 9:
-        filtroEsqueleto(imagens, destino);
-        break;
-    case 10:
-        filtroLimparMidia(imagens, destino);
-        break;
-    case 11:
-        filtroMascara(imagens, destino);
-        break;
-    case 12:
-        filtroExtrairForma(imagens, destino);
-        break;
-    case 13:
     {
-        std::vector<ImagemCarregada> imagensComNomes = carregarImagensComNomes(origem);
+        int tamanhoFiltro;
 
-        std::cout << "[Pixels Medios] Marcando pixels medios por linha e coluna..." << std::endl;
-        for (int i = 0; i < imagensComNomes.size(); ++i)
+        std::cout << "Tamanho do filtro Gaussiano: ";
+        std::cin >> tamanhoFiltro;
+        tamanhoFiltro = normalizarTamanhoFiltro(tamanhoFiltro);
+
+        for (const ImagemCarregada& imagem : imagens)
         {
-            salvarResultado(filtroPixelsMedios(imagensComNomes[i].imagem), destino, i);
-            salvarGraficoPixelsMedios(imagensComNomes[i].imagem, imagensComNomes[i].nome, destino.parent_path());
+            salvarResultado(
+                filtroGaussiano(imagem.imagem, tamanhoFiltro),
+                destino,
+                nomeComSufixo(imagem.nome, "Gaussiano")
+            );
         }
         break;
     }
+    case 2:
+    {
+        int tamanhoFiltro;
+
+        std::cout << "Tamanho do filtro Mediana: ";
+        std::cin >> tamanhoFiltro;
+        tamanhoFiltro = normalizarTamanhoFiltro(tamanhoFiltro);
+
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(
+                filtroMediana(imagem.imagem, tamanhoFiltro),
+                destino,
+                nomeComSufixo(imagem.nome, "Mediana")
+            );
+        }
+        break;
+    }
+    case 3:
+    {
+        int tamanhoFiltro;
+
+        std::cout << "Tamanho do filtro Suavizacao: ";
+        std::cin >> tamanhoFiltro;
+        tamanhoFiltro = normalizarTamanhoFiltro(tamanhoFiltro);
+
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(
+                filtroSuavizacao(imagem.imagem, tamanhoFiltro),
+                destino,
+                nomeComSufixo(imagem.nome, "Suavizacao")
+            );
+        }
+        break;
+    }
+    case 4:
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(filtroEqualizacao(imagem.imagem), destino, nomeComSufixo(imagem.nome, "Equalizacao"));
+        }
+        break;
+    case 5:
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(filtroBorda(imagem.imagem, 50, 150), destino, nomeComSufixo(imagem.nome, "Borda"));
+        }
+        break;
+    case 6:
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(
+                filtroNormalizacaoContraste(imagem.imagem),
+                destino,
+                nomeComSufixo(imagem.nome, "Contraste")
+            );
+        }
+        break;
+    case 7:
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(filtroLimiarOtsu(imagem.imagem), destino, nomeComSufixo(imagem.nome, "Otsu"));
+        }
+        break;
+    case 8:
+    {
+        double gamma;
+
+        std::cout << "Valor de gamma: ";
+        std::cin >> gamma;
+
+        if (gamma <= 0)
+        {
+            gamma = 1.0;
+        }
+
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(filtroGamma(imagem.imagem, gamma), destino, nomeComSufixo(imagem.nome, "Gamma"));
+        }
+        break;
+    }
+    case 9:
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(filtroEsqueleto(imagem.imagem), destino, nomeComSufixo(imagem.nome, "Esqueleto"));
+        }
+        break;
+    case 10:
+        std::cout << "[Limpar Midia] Gerando resultados..." << std::endl;
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(filtroLimparMidia(imagem.imagem), destino, nomeComSufixo(imagem.nome, "LimparMidia"));
+        }
+        break;
+    case 11:
+        std::cout << "[Mascara] Gerando resultados..." << std::endl;
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(filtroMascara(imagem.imagem), destino, nomeComSufixo(imagem.nome, "Mascara"));
+        }
+        break;
+    case 12:
+        std::cout << "[Extrair Forma] Gerando resultados..." << std::endl;
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(filtroExtrairForma(imagem.imagem), destino, nomeComSufixo(imagem.nome, "Forma"));
+        }
+        break;
+    case 13:
+        std::cout << "[Centro] Gerando centro..." << std::endl;
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(filtroPixelsMedios(imagem.imagem), destino, nomeComSufixo(imagem.nome, "Centro"));
+        }
+        break;
+    case 14:
+        std::cout << "[Grafico] Desenhando grafico de distancias..." << std::endl;
+        limparImagensComSufixo(destino.parent_path(), "_Grafico");
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarGraficoPixelsMedios(imagem.imagem, nomeComSufixo(imagem.nome, "Grafico"), destino.parent_path());
+        }
+        break;
+    case 15:
+        std::cout << "[Picos] Analizando grafico de distancias..." << std::endl;
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            cv::Mat mascaraForma = criarMascaraPixelsPretos(imagem.imagem);
+            cv::Point cruzamento;
+            std::vector<double> distancias = calcularDistanciasBordaCentro(mascaraForma, cruzamento);
+            std::vector<int> picos = detectarPicosDistancias(distancias);
+
+            std::cout << "[Picos] " << imagem.nome << ": " << picos.size() << " pico(s)";
+
+            for (int pico : picos)
+            {
+                std::cout << " [indice=" << pico << ", distancia=" << distancias[pico] << "]";
+            }
+
+            std::cout << std::endl;
+        }
+        break;
     default:
         break;
     }
@@ -628,7 +956,9 @@ cv::Mat Filters::preencherBordasComPreto(const cv::Mat& imagem)
         return imagem.clone();
     }
 
-    cv::Mat result = imagem.clone();
+    //Adicionar uma borda branca para garantir fundo no pixel (0,0)
+    cv::Mat result;
+    cv::copyMakeBorder(imagem, result, 1, 1, 1, 1, cv::BORDER_CONSTANT, cv::Scalar(255));
     const cv::Scalar preto(0);
 
     for (int x = 0; x < result.cols; ++x)
@@ -663,6 +993,7 @@ cv::Mat Filters::preencherBordasComPreto(const cv::Mat& imagem)
 cv::Mat Filters::filtroMascara(const cv::Mat& imagem)
 {
     cv::Mat result = imagem.clone();
+    result = filtroLimiarOtsu(result);
     result = preencherBordasComPreto(result);
     cv::bitwise_not(result, result);
     result = centralizarForma(result, true);
@@ -673,6 +1004,12 @@ cv::Mat Filters::filtroMascara(const cv::Mat& imagem)
 void Filters::filtroMascara(const std::vector<cv::Mat>& imagens, std::filesystem::path destino)
 {
     std::vector<cv::Mat> resultados = imagens;
+
+    std::cout << "[Mascara] Iniciando limiar de Otsu..." << std::endl;
+    for (cv::Mat& imagem : resultados)
+    {
+        imagem = filtroLimiarOtsu(imagem);
+    }
 
     std::cout << "[Mascara] Preenchendo bordas com preto..." << std::endl;
     for (cv::Mat& imagem : resultados)
@@ -773,12 +1110,44 @@ cv::Mat Filters::filtroPixelsMedios(const cv::Mat& imagem)
 
 void Filters::filtroPixelsMedios(const std::vector<cv::Mat>& imagens, std::filesystem::path destino)
 {
-    std::cout << "[Pixels Medios] Marcando pixels medios por linha e coluna..." << std::endl;
+    std::cout << "[Centro] Gerando centro..." << std::endl;
 
     for (int i = 0; i < imagens.size(); ++i)
     {
         salvarResultado(filtroPixelsMedios(imagens[i]), destino, i);
+    }
+}
+
+void Filters::desenharGraficoDistancias(const std::vector<cv::Mat>& imagens, std::filesystem::path destino)
+{
+    std::cout << "[Grafico] Desenhando grafico de distancias..." << std::endl;
+
+    for (int i = 0; i < imagens.size(); ++i)
+    {
         salvarGraficoPixelsMedios(imagens[i], "resultado_" + std::to_string(i), destino.parent_path());
+    }
+}
+
+void Filters::analisarPicosDistancias(const std::vector<cv::Mat>& imagens, std::filesystem::path destino)
+{
+    (void)destino;
+    std::cout << "[Picos] Analizando grafico de distancias..." << std::endl;
+
+    for (int i = 0; i < imagens.size(); ++i)
+    {
+        cv::Mat mascaraForma = criarMascaraPixelsPretos(imagens[i]);
+        cv::Point cruzamento;
+        std::vector<double> distancias = calcularDistanciasBordaCentro(mascaraForma, cruzamento);
+        std::vector<int> picos = detectarPicosDistancias(distancias);
+
+        std::cout << "[Picos] resultado_" << i << ": " << picos.size() << " pico(s)";
+
+        for (int pico : picos)
+        {
+            std::cout << " [indice=" << pico << ", distancia=" << distancias[pico] << "]";
+        }
+
+        std::cout << std::endl;
     }
 }
 
@@ -880,7 +1249,9 @@ std::string Filters::nomePreProcessamento(int filtro)
     case 10: return "Limpar Midia";
     case 11: return "Mascara";
     case 12: return "Extrair Forma";
-    case 13: return "Pixels Medios";
+    case 13: return "Gerar Centro";
+    case 14: return "Desenhar Grafico";
+    case 15: return "Analizar Grafico (Detectar Picos)";
     default: return "Filtro invalido";
     }
 }

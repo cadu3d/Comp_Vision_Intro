@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
+#include <cctype>
 #include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
 
@@ -35,6 +36,101 @@ namespace
         }
 
         return projectRoot() / "output" / folder;
+    }
+
+    bool ehExtensaoImagem(const std::filesystem::path& path)
+    {
+        std::string ext = path.extension().string();
+        std::transform(
+            ext.begin(),
+            ext.end(),
+            ext.begin(),
+            [](unsigned char c)
+            {
+                return static_cast<char>(std::tolower(c));
+            }
+        );
+
+        return ext == ".jpg" || ext == ".jpeg" || ext == ".png";
+    }
+
+    bool menorNatural(const std::string& a, const std::string& b)
+    {
+        size_t i = 0;
+        size_t j = 0;
+
+        while (i < a.size() && j < b.size())
+        {
+            unsigned char ca = static_cast<unsigned char>(a[i]);
+            unsigned char cb = static_cast<unsigned char>(b[j]);
+
+            if (std::isdigit(ca) && std::isdigit(cb))
+            {
+                size_t inicioNumeroA = i;
+                size_t inicioNumeroB = j;
+
+                while (inicioNumeroA < a.size() && a[inicioNumeroA] == '0')
+                {
+                    ++inicioNumeroA;
+                }
+
+                while (inicioNumeroB < b.size() && b[inicioNumeroB] == '0')
+                {
+                    ++inicioNumeroB;
+                }
+
+                size_t fimNumeroA = inicioNumeroA;
+                size_t fimNumeroB = inicioNumeroB;
+
+                while (fimNumeroA < a.size() && std::isdigit(static_cast<unsigned char>(a[fimNumeroA])))
+                {
+                    ++fimNumeroA;
+                }
+
+                while (fimNumeroB < b.size() && std::isdigit(static_cast<unsigned char>(b[fimNumeroB])))
+                {
+                    ++fimNumeroB;
+                }
+
+                size_t tamanhoNumeroA = fimNumeroA - inicioNumeroA;
+                size_t tamanhoNumeroB = fimNumeroB - inicioNumeroB;
+
+                if (tamanhoNumeroA != tamanhoNumeroB)
+                {
+                    return tamanhoNumeroA < tamanhoNumeroB;
+                }
+
+                for (size_t k = 0; k < tamanhoNumeroA; ++k)
+                {
+                    if (a[inicioNumeroA + k] != b[inicioNumeroB + k])
+                    {
+                        return a[inicioNumeroA + k] < b[inicioNumeroB + k];
+                    }
+                }
+
+                i = fimNumeroA;
+                j = fimNumeroB;
+                continue;
+            }
+
+            ca = static_cast<unsigned char>(std::tolower(ca));
+            cb = static_cast<unsigned char>(std::tolower(cb));
+
+            if (ca != cb)
+            {
+                return ca < cb;
+            }
+
+            ++i;
+            ++j;
+        }
+
+        return a.size() < b.size();
+    }
+
+    bool menorPathNatural(const std::filesystem::path& a, const std::filesystem::path& b)
+    {
+        return menorNatural(a.filename().string(), b.filename().string());
     }
 
 }
@@ -72,9 +168,7 @@ bool temImagem(const std::filesystem::path& folder)
 
     for (const auto& entry : std::filesystem::directory_iterator(folder))
     {
-        std::string ext = entry.path().extension().string();
-
-        if (ext == ".jpg" || ext == ".jpeg" || ext == ".png")
+        if (ehExtensaoImagem(entry.path()))
         {
             return true;
         }
@@ -85,6 +179,7 @@ bool temImagem(const std::filesystem::path& folder)
 
 std::vector<cv::Mat> carregarImagens(const std::filesystem::path& folder)
 {
+    std::vector<std::filesystem::path> paths;
     std::vector<cv::Mat> imagens;
 
     for (const auto& entry : std::filesystem::directory_iterator(folder))
@@ -95,16 +190,22 @@ std::vector<cv::Mat> carregarImagens(const std::filesystem::path& folder)
         }
 
         std::filesystem::path path = entry.path();
-        std::string ext = path.extension().string();
 
-        if (ext == ".jpg" || ext == ".jpeg" || ext == ".png")
+        if (ehExtensaoImagem(path))
         {
-            cv::Mat imagem = cv::imread(path.string(), cv::IMREAD_GRAYSCALE);
+            paths.push_back(path);
+        }
+    }
 
-            if (!imagem.empty())
-            {
-                imagens.push_back(imagem);
-            }
+    std::sort(paths.begin(), paths.end(), menorPathNatural);
+
+    for (const std::filesystem::path& path : paths)
+    {
+        cv::Mat imagem = cv::imread(path.string(), cv::IMREAD_GRAYSCALE);
+
+        if (!imagem.empty())
+        {
+            imagens.push_back(imagem);
         }
     }
 
@@ -123,15 +224,14 @@ std::vector<ImagemCarregada> carregarImagensComNomes(const std::filesystem::path
         }
 
         std::filesystem::path path = entry.path();
-        std::string ext = path.extension().string();
 
-        if (ext == ".jpg" || ext == ".jpeg" || ext == ".png")
+        if (ehExtensaoImagem(path))
         {
             paths.push_back(path);
         }
     }
 
-    std::sort(paths.begin(), paths.end());
+    std::sort(paths.begin(), paths.end(), menorPathNatural);
 
     std::vector<ImagemCarregada> imagens;
 

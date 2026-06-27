@@ -25,6 +25,8 @@ public:
     static void filtroMascara(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
     static void filtroExtrairForma(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
     static void filtroPixelsMedios(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
+    static void desenharGraficoDistancias(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
+    static void analisarPicosDistancias(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
     static cv::Mat filtroGaussiano(const cv::Mat& imagem, int tamanhoFiltro);
     static cv::Mat filtroMediana(const cv::Mat& imagem, int tamanhoFiltro);
     static cv::Mat filtroSuavizacao(const cv::Mat& imagem, int tamanhoFiltro);
