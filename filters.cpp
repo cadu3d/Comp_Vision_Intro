@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <filesystem>
 #include <iostream>
 #include <opencv2/opencv.hpp>
@@ -73,6 +74,40 @@ namespace
             "_Grafico"
         };
 
+        size_t sufixoGraficoMedia = nome.find("_GraficoMedia_");
+        if (sufixoGraficoMedia != std::string::npos)
+        {
+            nome.erase(sufixoGraficoMedia);
+        }
+
+        size_t sufixoGraficoMediaFineTuning = nome.find("_GraficoMediaFT_");
+        if (sufixoGraficoMediaFineTuning != std::string::npos)
+        {
+            nome.erase(sufixoGraficoMediaFineTuning);
+        }
+
+        size_t sufixoAmp = nome.find("_AMP_");
+        if (sufixoAmp != std::string::npos)
+        {
+            nome.erase(sufixoAmp);
+        }
+
+        const std::vector<std::string> sufixosClasses = {
+            "_QUADRADO_",
+            "_TRIANGULO_",
+            "_CIRCULO_"
+        };
+
+        for (const std::string& sufixoClasse : sufixosClasses)
+        {
+            size_t posicaoSufixo = nome.find(sufixoClasse);
+            if (posicaoSufixo != std::string::npos)
+            {
+                nome.erase(posicaoSufixo);
+                break;
+            }
+        }
+
         bool removeuSufixo = true;
         while (removeuSufixo)
         {
@@ -95,6 +130,11 @@ namespace
     std::string nomeComSufixo(const std::string& nome, const std::string& sufixo)
     {
         return nomeBaseSemSufixos(nome) + "_" + sufixo;
+    }
+
+    std::string formatarNumeroSufixo(double valor)
+    {
+        return std::to_string(static_cast<int>(std::round(valor)));
     }
 
     void limparImagensDoDiretorio(const std::filesystem::path& destino)
@@ -132,6 +172,153 @@ namespace
                 std::filesystem::remove(entry.path());
             }
         }
+    }
+
+    void limparGraficosGerados(const std::filesystem::path& destino)
+    {
+        const std::vector<std::string> sufixosGraficos = {
+            "_Grafico",
+            "_graph",
+            "_GRAPH"
+        };
+
+        if (!std::filesystem::exists(destino))
+        {
+            return;
+        }
+
+        for (const auto& entry : std::filesystem::directory_iterator(destino))
+        {
+            if (!entry.is_regular_file() || !ehExtensaoImagem(entry.path()))
+            {
+                continue;
+            }
+
+            std::string nome = entry.path().stem().string();
+            if (nome.find("_GraficoMedia_") != std::string::npos)
+            {
+                std::filesystem::remove(entry.path());
+                continue;
+            }
+
+            if (nome.find("_GraficoMediaFT_") != std::string::npos)
+            {
+                std::filesystem::remove(entry.path());
+                continue;
+            }
+
+            if (nome.find("_AMP_") != std::string::npos
+                || nome.find("_QUADRADO_") != std::string::npos
+                || nome.find("_TRIANGULO_") != std::string::npos
+                || nome.find("_CIRCULO_") != std::string::npos
+                || terminaCom(nome, "_QUADRADO")
+                || terminaCom(nome, "_TRIANGULO")
+                || terminaCom(nome, "_CIRCULO"))
+            {
+                std::filesystem::remove(entry.path());
+                continue;
+            }
+
+            for (const std::string& sufixo : sufixosGraficos)
+            {
+                if (terminaCom(nome, sufixo))
+                {
+                    std::filesystem::remove(entry.path());
+                    break;
+                }
+            }
+        }
+    }
+
+    void limparClassificacoesGeradas(const std::filesystem::path& destino)
+    {
+        if (!std::filesystem::exists(destino))
+        {
+            return;
+        }
+
+        for (const auto& entry : std::filesystem::directory_iterator(destino))
+        {
+            if (!entry.is_regular_file() || !ehExtensaoImagem(entry.path()))
+            {
+                continue;
+            }
+
+            std::string nome = entry.path().stem().string();
+            if (terminaCom(nome, "_QUADRADO")
+                || terminaCom(nome, "_TRIANGULO")
+                || terminaCom(nome, "_CIRCULO"))
+            {
+                std::filesystem::remove(entry.path());
+            }
+        }
+    }
+
+    int extrairAmpDoNome(const std::string& nome)
+    {
+        size_t posicaoAmp = nome.rfind("_AMP_");
+        if (posicaoAmp == std::string::npos)
+        {
+            return 0;
+        }
+
+        std::string valor = nome.substr(posicaoAmp + 5);
+        if (valor.empty())
+        {
+            return 0;
+        }
+
+        for (char c : valor)
+        {
+            if (!std::isdigit(static_cast<unsigned char>(c)))
+            {
+                return 0;
+            }
+        }
+
+        return std::stoi(valor);
+    }
+
+    int contarComponentesColoridos(const cv::Mat& imagem, const cv::Scalar& minimo, const cv::Scalar& maximo)
+    {
+        if (imagem.empty())
+        {
+            return 0;
+        }
+
+        cv::Mat mascara;
+        cv::inRange(imagem, minimo, maximo, mascara);
+
+        cv::Mat labels;
+        int componentes = cv::connectedComponents(mascara, labels, 8);
+        return std::max(0, componentes - 1);
+    }
+
+    std::string classificarFormaPorGrafico(const cv::Mat& grafico, int mediaAmplitude)
+    {
+        int totalMaximos = contarComponentesColoridos(
+            grafico,
+            cv::Scalar(0, 180, 0),
+            cv::Scalar(80, 255, 80)
+        );
+        int totalMinimos = contarComponentesColoridos(
+            grafico,
+            cv::Scalar(0, 0, 180),
+            cv::Scalar(80, 80, 255)
+        );
+
+        if (totalMaximos == 4)
+        {
+            return "QUADRADO";
+        }
+
+        if (totalMaximos == 3
+            || (totalMaximos == 2 && mediaAmplitude > 105))
+        {
+            return "TRIANGULO";
+        }
+
+        return "CIRCULO";
     }
 
     cv::Mat dilatarContornoPreto(const cv::Mat& imagem, int tamanhoKernel = 3, int iteracoes = 1)
@@ -210,6 +397,214 @@ namespace
         }
 
         cv::imwrite(destino.string(), grafico);
+    }
+
+    double salvarGraficoAnaliseDistancias(
+        const std::vector<double>& distancias,
+        const std::filesystem::path& destinoGraficos,
+        const std::string& nomeImagem,
+        double thresholdMinimo = 0.0,
+        const std::string& sufixoMedia = "AMP_",
+        int janelaComparacao = 20,
+        bool classificarForma = false,
+        bool usarMediaTodosVetores = false
+    )
+    {
+        if (distancias.empty())
+        {
+            return 0.0;
+        }
+
+        constexpr int largura = 800;
+        constexpr int altura = 400;
+        cv::Mat grafico(altura, largura, CV_8UC3, cv::Scalar(255, 255, 255));
+
+        double maiorDistancia = *std::max_element(distancias.begin(), distancias.end());
+        if (maiorDistancia <= 0)
+        {
+            maiorDistancia = 1.0;
+        }
+
+        std::vector<cv::Point> pontos;
+        pontos.reserve(distancias.size());
+
+        for (int i = 0; i < static_cast<int>(distancias.size()); ++i)
+        {
+            double xRatio = distancias.size() == 1 ? 0.0 : static_cast<double>(i) / (distancias.size() - 1);
+            double yRatio = distancias[i] / maiorDistancia;
+            int x = static_cast<int>(xRatio * (largura - 1));
+            int y = (altura - 1) - static_cast<int>(yRatio * (altura - 1));
+            pontos.emplace_back(x, y);
+        }
+
+        for (int i = 1; i < static_cast<int>(pontos.size()); ++i)
+        {
+            cv::line(grafico, pontos[i - 1], pontos[i], cv::Scalar(255, 0, 0), 1);
+        }
+
+        struct Extremo
+        {
+            int indice;
+            bool maximo;
+        };
+
+        std::vector<Extremo> extremos;
+        int inicioBloco = -1;
+        int tipoBloco = 0;
+
+        auto classificarExtremo = [&](int indice)
+        {
+            double atual = distancias[indice];
+            double esquerda = distancias[indice - janelaComparacao];
+            double direita = distancias[indice + janelaComparacao];
+
+            if ((atual - esquerda) >= thresholdMinimo && (atual - direita) >= thresholdMinimo)
+            {
+                return 1;
+            }
+
+            if ((esquerda - atual) >= thresholdMinimo && (direita - atual) >= thresholdMinimo)
+            {
+                return -1;
+            }
+
+            return 0;
+        };
+
+        auto fecharBloco = [&]()
+        {
+            if (inicioBloco < 0)
+            {
+                return;
+            }
+
+            int fimBloco = inicioBloco;
+            for (int i = inicioBloco + 1; i < static_cast<int>(distancias.size()) - janelaComparacao; ++i)
+            {
+                int tipoAtual = classificarExtremo(i);
+
+                if (tipoAtual != tipoBloco)
+                {
+                    break;
+                }
+
+                fimBloco = i;
+            }
+
+            extremos.push_back({(inicioBloco + fimBloco) / 2, tipoBloco > 0});
+            inicioBloco = -1;
+            tipoBloco = 0;
+        };
+
+        for (int i = janelaComparacao; i < static_cast<int>(distancias.size()) - janelaComparacao; ++i)
+        {
+            int tipoAtual = classificarExtremo(i);
+
+            if (tipoAtual == 0)
+            {
+                fecharBloco();
+                continue;
+            }
+
+            if (inicioBloco < 0)
+            {
+                inicioBloco = i;
+                tipoBloco = tipoAtual;
+                continue;
+            }
+
+            if (tipoAtual != tipoBloco)
+            {
+                fecharBloco();
+                inicioBloco = i;
+                tipoBloco = tipoAtual;
+            }
+        }
+
+        fecharBloco();
+
+        double somaAmplitude = 0.0;
+        int totalAmplitude = 0;
+        int totalMaximos = 0;
+        int totalMinimos = 0;
+
+        for (int i = 1; i < static_cast<int>(extremos.size()); ++i)
+        {
+            if (extremos[i - 1].maximo == extremos[i].maximo)
+            {
+                continue;
+            }
+
+            somaAmplitude += std::abs(pontos[extremos[i - 1].indice].y - pontos[extremos[i].indice].y);
+            ++totalAmplitude;
+        }
+
+        for (const Extremo& extremo : extremos)
+        {
+            if (extremo.maximo)
+            {
+                ++totalMaximos;
+            }
+            else
+            {
+                ++totalMinimos;
+            }
+
+            cv::Scalar cor = extremo.maximo ? cv::Scalar(0, 255, 0) : cv::Scalar(0, 0, 255);
+            cv::circle(grafico, pontos[extremo.indice], 4, cor, cv::FILLED);
+        }
+
+        double mediaAmplitude = totalAmplitude == 0 ? 0.0 : somaAmplitude / totalAmplitude;
+
+        if (usarMediaTodosVetores)
+        {
+            double somaY = 0.0;
+            for (const cv::Point& ponto : pontos)
+            {
+                somaY += ponto.y;
+            }
+
+            double mediaY = pontos.empty() ? 0.0 : somaY / pontos.size();
+            double somaDesvios = 0.0;
+
+            for (const cv::Point& ponto : pontos)
+            {
+                somaDesvios += std::abs(ponto.y - mediaY);
+            }
+
+            mediaAmplitude = pontos.empty() ? 0.0 : somaDesvios / pontos.size();
+        }
+
+        std::string sufixoArquivo = sufixoMedia + formatarNumeroSufixo(mediaAmplitude);
+
+        if (classificarForma)
+        {
+            std::string forma = "CIRCULO";
+
+            if (totalMaximos == 4)
+            {
+                forma = "QUADRADO";
+            }
+            else if ((totalMaximos == 3 && totalMinimos == 2)
+                || (totalMaximos == 2
+                    && (totalMinimos == 1 || totalMinimos == 2)
+                    && mediaAmplitude > 105.0))
+            {
+                forma = "TRIANGULO";
+            }
+
+            sufixoArquivo = forma;
+        }
+
+        std::filesystem::create_directories(destinoGraficos);
+        const std::filesystem::path destino = destinoGraficos
+            / (nomeComSufixo(nomeImagem, sufixoArquivo) + ".png");
+
+        cv::imwrite(destino.string(), grafico);
+        std::cout << "[Picos] Media de amplitude vertical: " << mediaAmplitude << " px" << std::endl;
+        std::cout << "[Picos] MAX: " << totalMaximos << " MIN: " << totalMinimos << std::endl;
+        std::cout << "[Picos] Grafico analisado salvo em: " << destino.string() << std::endl;
+        return mediaAmplitude;
     }
 
     cv::Point encontrarCruzamentoPixelsMedios(const cv::Mat& mascaraForma)
@@ -418,6 +813,10 @@ std::string Filters::menuPreProcImagem()
     std::string filtro;
 
     std::cout
+        << "------------------------------------\n"
+        << "0 -> Voltar\n"
+        << "00 -> Reset\n"
+        << "\n"
         << "------------ FILTROS -----------\n"
         << "1 -> Gaussiano\n"
         << "2 -> Mediana\n"
@@ -437,11 +836,14 @@ std::string Filters::menuPreProcImagem()
         << "----------- Analise Morfologica ------\n"
         << "13 -> Gerar Centro\n"
         << "14 -> Desenhar Grafico\n"
-        << "15 -> Analizar Grafico (Detectar Picos)\n"
+        << "15 -> Analizar Grafico (Amplitude)\n"
+        << "16 -> Analizar Grafico (Fine Tuning)\n"
+        << "17 -> Detectar Formas\n"
         << "\n"
-        << "------------------------------------\n"
-        << "0 -> Voltar\n"
-        << "00 -> Reset\n";
+        << "----------- Analise Transf. Hough ------\n"
+        << "18 -> Detectar Circulos\n"
+        << "19 -> Detectar Retas\n"
+        << "\n";
     std::cin >> filtro;
 
     return filtro;
@@ -459,7 +861,7 @@ void Filters::preProcImagem(int filtro, std::string lab)
         return;
     }
 
-    if (filtro < 1 || filtro > 15)
+    if (filtro < 1 || filtro > 17)
     {
         std::cout << "Filtro invalido" << std::endl;
         return;
@@ -498,7 +900,7 @@ void Filters::preProcImagem(int filtro, std::string lab)
             salvarResultado(
                 filtroGaussiano(imagem.imagem, tamanhoFiltro),
                 destino,
-                nomeComSufixo(imagem.nome, "Gaussiano")
+                nomeBaseSemSufixos(imagem.nome)
             );
         }
         break;
@@ -602,7 +1004,7 @@ void Filters::preProcImagem(int filtro, std::string lab)
         std::cout << "[Mascara] Gerando resultados..." << std::endl;
         for (const ImagemCarregada& imagem : imagens)
         {
-            salvarResultado(filtroMascara(imagem.imagem), destino, nomeComSufixo(imagem.nome, "Mascara"));
+            salvarResultado(filtroMascara(imagem.imagem), destino, nomeBaseSemSufixos(imagem.nome));
         }
         break;
     case 12:
@@ -621,31 +1023,129 @@ void Filters::preProcImagem(int filtro, std::string lab)
         break;
     case 14:
         std::cout << "[Grafico] Desenhando grafico de distancias..." << std::endl;
-        limparImagensComSufixo(destino.parent_path(), "_Grafico");
+        limparGraficosGerados(destino.parent_path());
         for (const ImagemCarregada& imagem : imagens)
         {
             salvarGraficoPixelsMedios(imagem.imagem, nomeComSufixo(imagem.nome, "Grafico"), destino.parent_path());
         }
         break;
     case 15:
+    {
         std::cout << "[Picos] Analizando grafico de distancias..." << std::endl;
+        std::string usarMediaResposta;
+        std::cout << "Considerar a media de todos os vetores para detectar amplitude? (S/N): ";
+        std::cin >> usarMediaResposta;
+        bool usarMediaTodosVetores = !usarMediaResposta.empty()
+            && (usarMediaResposta[0] == 'S' || usarMediaResposta[0] == 's');
+
+        limparGraficosGerados(destino.parent_path());
         for (const ImagemCarregada& imagem : imagens)
         {
             cv::Mat mascaraForma = criarMascaraPixelsPretos(imagem.imagem);
             cv::Point cruzamento;
             std::vector<double> distancias = calcularDistanciasBordaCentro(mascaraForma, cruzamento);
-            std::vector<int> picos = detectarPicosDistancias(distancias);
+            distancias = suavizarDistanciasParaGrafico(distancias);
 
-            std::cout << "[Picos] " << imagem.nome << ": " << picos.size() << " pico(s)";
-
-            for (int pico : picos)
-            {
-                std::cout << " [indice=" << pico << ", distancia=" << distancias[pico] << "]";
-            }
-
-            std::cout << std::endl;
+            salvarGraficoAnaliseDistancias(
+                distancias,
+                destino.parent_path(),
+                imagem.nome,
+                0.0,
+                "AMP_",
+                20,
+                false,
+                usarMediaTodosVetores
+            );
         }
         break;
+    }
+    case 16:
+    {
+        std::cout << "[Picos] Analizando grafico com fine tuning..." << std::endl;
+        int raioComparacao;
+        double thresholdMinimo;
+
+        std::cout << "Raio de comparacao (+/-) para Fine Tuning (padrao 60): ";
+        std::cin >> raioComparacao;
+
+        if (raioComparacao < 1)
+        {
+            raioComparacao = 60;
+        }
+
+        std::cout << "Threshold minimo para Fine Tuning (padrao 10): ";
+        std::cin >> thresholdMinimo;
+
+        if (thresholdMinimo < 0)
+        {
+            thresholdMinimo = 10.0;
+        }
+
+        limparGraficosGerados(destino.parent_path());
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            cv::Mat mascaraForma = criarMascaraPixelsPretos(imagem.imagem);
+            cv::Point cruzamento;
+            std::vector<double> distancias = calcularDistanciasBordaCentro(mascaraForma, cruzamento);
+            distancias = suavizarDistanciasParaGrafico(distancias);
+            salvarGraficoAnaliseDistancias(
+                distancias,
+                destino.parent_path(),
+                imagem.nome,
+                thresholdMinimo,
+                "AMP_",
+                raioComparacao
+            );
+        }
+        break;
+    }
+    case 17:
+    {
+        std::cout << "[Formas] Detectando formas..." << std::endl;
+        std::filesystem::path destinoGraficos = destino.parent_path();
+        std::vector<std::filesystem::path> graficosAmp;
+
+        if (std::filesystem::exists(destinoGraficos))
+        {
+            for (const auto& entry : std::filesystem::directory_iterator(destinoGraficos))
+            {
+                if (entry.is_regular_file()
+                    && ehExtensaoImagem(entry.path())
+                    && entry.path().stem().string().find("_AMP_") != std::string::npos)
+                {
+                    graficosAmp.push_back(entry.path());
+                }
+            }
+        }
+
+        if (graficosAmp.empty())
+        {
+            std::cout << "Gráficos Indisponiveis!" << std::endl;
+            break;
+        }
+
+        limparClassificacoesGeradas(destinoGraficos);
+
+        for (const std::filesystem::path& graficoPath : graficosAmp)
+        {
+            std::string nome = graficoPath.stem().string();
+            int mediaAmplitude = extrairAmpDoNome(nome);
+            cv::Mat grafico = cv::imread(graficoPath.string(), cv::IMREAD_COLOR);
+            std::string forma = classificarFormaPorGrafico(grafico, mediaAmplitude);
+            std::filesystem::path destinoClassificado = graficoPath.parent_path()
+                / (nomeComSufixo(nome, forma) + graficoPath.extension().string());
+
+            if (std::filesystem::exists(destinoClassificado))
+            {
+                std::filesystem::remove(destinoClassificado);
+            }
+
+            std::filesystem::rename(graficoPath, destinoClassificado);
+            std::cout << "[Formas] " << graficoPath.filename().string()
+                << " -> " << destinoClassificado.filename().string() << std::endl;
+        }
+        break;
+    }
     default:
         break;
     }
@@ -1251,7 +1751,9 @@ std::string Filters::nomePreProcessamento(int filtro)
     case 12: return "Extrair Forma";
     case 13: return "Gerar Centro";
     case 14: return "Desenhar Grafico";
-    case 15: return "Analizar Grafico (Detectar Picos)";
+    case 15: return "Analizar Grafico (Amplitude)";
+    case 16: return "Analizar Grafico (Fine Tuning)";
+    case 17: return "Detectar Formas";
     default: return "Filtro invalido";
     }
 }
