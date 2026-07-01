@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -20,6 +21,8 @@ void menuPreProcessamentoFinal();
 void detectarCirculos();
 void detectarRetas();
 std::vector<std::string> carregarClasses();
+std::string classeParaSufixo(const std::string& classe);
+std::string confiancaParaSufixo(float confianca);
 cv::Mat preProcessarImagemOnnx(const cv::Mat& imagem);
 std::pair<int, float> predizerClasse(cv::dnn::Net& net, const cv::Mat& blob);
 void analisarImagemComIA();
@@ -195,6 +198,7 @@ void detectarCirculos()
     std::vector<ImagemCarregada> imagens = carregarImagensComNomes(origem);
     std::filesystem::path destino = projectRoot() / "output" / "Lab_FINAL";
     std::filesystem::create_directories(destino);
+    int totalDetectado = 0;
 
     for (int i = 0; i < imagens.size(); ++i)
     {
@@ -232,13 +236,16 @@ void detectarCirculos()
         if (!coordCirculos.empty())
         {
             nomeResultado += "_CIRCULO";
+            ++totalDetectado;
         }
 
-        cv::imwrite((destino / (nomeResultado + ".png")).string(), result);
+        std::string arquivoResultado = nomeResultado + ".png";
+        cv::imwrite((destino / arquivoResultado).string(), result);
+        std::cout << imagemComNome.nome << " -> " << arquivoResultado << std::endl;
     }
 
-    std::cout << "Circulos detectados em " << imagens.size()
-        << " " << origemMensagem << "." << std::endl;
+    std::cout << "Circulos detectados em " << totalDetectado
+        << " de " << imagens.size() << " " << origemMensagem << "." << std::endl;
 }
 
 void detectarRetas()
@@ -307,7 +314,9 @@ void detectarRetas()
             sufixoForma = "_QUADRADO";
         }
 
-        cv::imwrite((destino / (imagemComNome.nome + sufixoForma + ".png")).string(), result);
+        std::string arquivoResultado = imagemComNome.nome + sufixoForma + ".png";
+        cv::imwrite((destino / arquivoResultado).string(), result);
+        std::cout << imagemComNome.nome << " -> " << arquivoResultado << std::endl;
     }
 
     std::cout << "Retas detectadas em " << imagens.size()
@@ -344,13 +353,49 @@ std::vector<std::string> carregarClasses()
     return classes;
 }
 
+std::string classeParaSufixo(const std::string& classe)
+{
+    std::string sufixo = classe;
+    std::transform(
+        sufixo.begin(),
+        sufixo.end(),
+        sufixo.begin(),
+        [](unsigned char c)
+        {
+            return static_cast<char>(std::toupper(c));
+        }
+    );
+
+    return sufixo;
+}
+
+std::string confiancaParaSufixo(float confianca)
+{
+    int valor = static_cast<int>(std::round(std::clamp(confianca, 0.0F, 1.0F) * 1000.0F));
+    return std::to_string(valor);
+}
+
 cv::Mat preProcessarImagemOnnx(const cv::Mat& imagem)
 {
-    // Converter a imagem para o formato esperado pelo modelo ONNX.
+    cv::Mat redimensionada;
+
+    if (imagem.cols == 256 && imagem.rows == 256)
+    {
+        cv::pyrDown(imagem, redimensionada, cv::Size(128, 128));
+    }
+    else
+    {
+        cv::resize(imagem, redimensionada, cv::Size(128, 128), 0.0, 0.0, cv::INTER_AREA);
+    }
+
+    cv::Mat normalizada;
+    // Mesmo preprocessamento do PyTorch: ToTensor() seguido de Normalize(0.5, 0.5).
+    redimensionada.convertTo(normalizada, CV_32F, 1.0 / 127.5, -1.0);
+
     return cv::dnn::blobFromImage(
-        imagem,
-        1.0 / 255.0,
-        cv::Size(128, 128),
+        normalizada,
+        1.0,
+        cv::Size(),
         cv::Scalar(),
         false,
         false,
@@ -369,6 +414,7 @@ std::pair<int, float> predizerClasse(cv::dnn::Net& net, const cv::Mat& blob)
     cv::exp(scores, probabilidades);
     probabilidades /= cv::sum(probabilidades)[0];
 
+    // Veredito por argmax: a classe com a maior probabilidade vence, sem threshold.
     cv::Point classeEncontrada;
     double confianca = 0.0;
     cv::minMaxLoc(probabilidades, nullptr, &confianca, nullptr, &classeEncontrada);
@@ -378,19 +424,15 @@ std::pair<int, float> predizerClasse(cv::dnn::Net& net, const cv::Mat& blob)
 
 void analisarImagemComIA()
 {
-    std::string nomeImagem;
-
-    std::cout << "Digite o nome da imagem em output/Lab_FINAL/preProcessadas: ";
-    std::cin >> nomeImagem;
-
-    const std::filesystem::path imagePath = projectRoot() / "output" / "Lab_FINAL" / "preProcessadas" / nomeImagem;
+    const std::filesystem::path preProcessadas = projectRoot() / "output" / "Lab_FINAL" / "preProcessadas";
+    const std::filesystem::path inputOriginal = projectRoot() / "input" / "Lab_FINAL";
+    const std::filesystem::path origem = temImagem(preProcessadas) ? preProcessadas : inputOriginal;
+    const std::filesystem::path destino = projectRoot() / "output" / "Lab_FINAL";
     const std::filesystem::path modelPath = projectRoot() / "models" / "handdraw_shapes.onnx";
 
-    cv::Mat imagem = cv::imread(imagePath.string(), cv::IMREAD_GRAYSCALE);
-
-    if (imagem.empty())
+    if (!temImagem(origem))
     {
-        std::cout << "Nao foi possivel carregar a imagem: " << imagePath.string() << std::endl;
+        std::cout << "Nenhuma imagem encontrada em: " << origem.string() << std::endl;
         return;
     }
 
@@ -398,26 +440,48 @@ void analisarImagemComIA()
     {
         std::vector<std::string> classes = carregarClasses();
         cv::dnn::Net net = cv::dnn::readNetFromONNX(modelPath.string());
-        cv::Mat imagemPreProcessada = preProcessarImagemOnnx(imagem);
-        std::pair<int, float> resultado = predizerClasse(net, imagemPreProcessada);
-        int classeIndex = resultado.first;
-        float confianca = resultado.second;
+        std::vector<ImagemCarregada> imagens = carregarImagensComNomes(origem);
+        std::filesystem::create_directories(destino);
 
-        if (classeIndex < 0 || classeIndex >= static_cast<int>(classes.size()))
+        for (const ImagemCarregada& imagemComNome : imagens)
         {
-            std::cout << "O modelo retornou uma classe invalida: " << classeIndex << std::endl;
-            return;
-        }
+            cv::Mat imagemPreProcessada = preProcessarImagemOnnx(imagemComNome.imagem);
+            std::pair<int, float> resultado = predizerClasse(net, imagemPreProcessada);
+            int classeIndex = resultado.first;
+            float confianca = resultado.second;
 
-        if (confianca < 0.5F)
-        {
-            std::cout << "Tipo de forma: unknown"
+            if (classeIndex < 0 || classeIndex >= static_cast<int>(classes.size()))
+            {
+                std::cout << imagemComNome.nome
+                    << ": o modelo retornou uma classe invalida: " << classeIndex << std::endl;
+                continue;
+            }
+
+            for (const std::string& classe : classes)
+            {
+                const std::string prefixoResultado = imagemComNome.nome + "_" + classeParaSufixo(classe) + "_";
+                for (const auto& entry : std::filesystem::directory_iterator(destino))
+                {
+                    if (entry.is_regular_file()
+                        && entry.path().extension() == ".png"
+                        && entry.path().stem().string().rfind(prefixoResultado, 0) == 0)
+                    {
+                        std::filesystem::remove(entry.path());
+                    }
+                }
+            }
+
+            std::string classe = classes[classeIndex];
+            std::string nomeResultado = imagemComNome.nome + "_" + classeParaSufixo(classe)
+                + "_" + confiancaParaSufixo(confianca) + ".png";
+            cv::imwrite((destino / nomeResultado).string(), imagemComNome.imagem);
+
+            std::cout << imagemComNome.nome << " -> " << nomeResultado
                 << " (confianca: " << confianca << ")" << std::endl;
-            return;
         }
 
-        std::cout << "Tipo de forma: " << classes[classeIndex]
-            << " (confianca: " << confianca << ")" << std::endl;
+        std::cout << "Imagens analisadas: " << imagens.size()
+            << " em " << destino.string() << std::endl;
     }
     catch (const std::exception& e)
     {
@@ -433,10 +497,24 @@ void runLabFinal()
     std::cout << "LAB FINAL:" << std::endl;
     std::cout << "------------" << std::endl;
     std::cout << "0 -> Voltar" << std::endl;
-    std::cout << "00 -> Reset (deleta imagens pre-processadas e outputs)" << std::endl;
-    std::cout << "------------" << std::endl;
+    std::cout << "00 -> Reset" << std::endl;
     std::cout << "1 -> Pre-Processar" << std::endl;
-    std::cout << "4 -> Analisar imagem com IA" << std::endl;
+    std::cout << std::endl;
+    std::cout << "------------ Analise Morfologica ------" << std::endl;
+    std::cout << "2 -> Gerar Centro" << std::endl;
+    std::cout << "3 -> Desenhar Grafico" << std::endl;
+    std::cout << "4 -> Analizar Grafico (Amplitude)" << std::endl;
+    std::cout << "5 -> Analizar Grafico (Fine Tuning)" << std::endl;
+    std::cout << "6 -> Detectar Formas" << std::endl;
+    std::cout << std::endl;
+    std::cout << "------------ Analise Transf. Hough ------" << std::endl;
+    std::cout << "7 -> Detectar Circulos" << std::endl;
+    std::cout << "8 -> Detectar Retas" << std::endl;
+    std::cout << std::endl;
+    std::cout << "------------ Iteligencia Artificial ----------" << std::endl;
+    std::cout << "9 -> Analisar imagem com IA" << std::endl;
+    std::cout << std::endl;
+    std::cout << "> ";
     std::cin >> processar;
 
     if (processar == "0")
@@ -458,7 +536,56 @@ void runLabFinal()
         return;
     }
 
+    if (processar == "2")
+    {
+        Filters::preProcImagem(13, "Lab_FINAL");
+        runLabFinal();
+        return;
+    }
+
+    if (processar == "3")
+    {
+        Filters::preProcImagem(14, "Lab_FINAL");
+        runLabFinal();
+        return;
+    }
+
     if (processar == "4")
+    {
+        Filters::preProcImagem(15, "Lab_FINAL");
+        runLabFinal();
+        return;
+    }
+
+    if (processar == "5")
+    {
+        Filters::preProcImagem(16, "Lab_FINAL");
+        runLabFinal();
+        return;
+    }
+
+    if (processar == "6")
+    {
+        Filters::preProcImagem(17, "Lab_FINAL");
+        runLabFinal();
+        return;
+    }
+
+    if (processar == "7")
+    {
+        detectarCirculos();
+        runLabFinal();
+        return;
+    }
+
+    if (processar == "8")
+    {
+        detectarRetas();
+        runLabFinal();
+        return;
+    }
+
+    if (processar == "9")
     {
         analisarImagemComIA();
         runLabFinal();

@@ -2,8 +2,10 @@
 #include <cctype>
 #include <cmath>
 #include <filesystem>
+#include <iomanip>
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <sstream>
 #include <vector>
 
 #include "filters.h"
@@ -134,7 +136,9 @@ namespace
 
     std::string formatarNumeroSufixo(double valor)
     {
-        return std::to_string(static_cast<int>(std::round(valor)));
+        std::ostringstream stream;
+        stream << std::setw(3) << std::setfill('0') << static_cast<int>(std::round(valor));
+        return stream.str();
     }
 
     void limparImagensDoDiretorio(const std::filesystem::path& destino)
@@ -832,17 +836,6 @@ std::string Filters::menuPreProcImagem()
         << "10 -> Limpar Midia\n"
         << "11 -> Mascara\n"
         << "12 -> Extrair Forma\n"
-        << "\n"
-        << "----------- Analise Morfologica ------\n"
-        << "13 -> Gerar Centro\n"
-        << "14 -> Desenhar Grafico\n"
-        << "15 -> Analizar Grafico (Amplitude)\n"
-        << "16 -> Analizar Grafico (Fine Tuning)\n"
-        << "17 -> Detectar Formas\n"
-        << "\n"
-        << "----------- Analise Transf. Hough ------\n"
-        << "18 -> Detectar Circulos\n"
-        << "19 -> Detectar Retas\n"
         << "\n";
     std::cin >> filtro;
 
