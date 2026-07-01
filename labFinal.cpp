@@ -503,8 +503,8 @@ void runLabFinal()
     std::cout << "------------ Analise Morfologica ------" << std::endl;
     std::cout << "2 -> Gerar Centro" << std::endl;
     std::cout << "3 -> Desenhar Grafico" << std::endl;
-    std::cout << "4 -> Analizar Grafico (Amplitude)" << std::endl;
-    std::cout << "5 -> Analizar Grafico (Fine Tuning)" << std::endl;
+    std::cout << "4 -> Calcular Max e Min" << std::endl;
+    std::cout << "5 -> Calcular Amplitude" << std::endl;
     std::cout << "6 -> Detectar Formas" << std::endl;
     std::cout << std::endl;
     std::cout << "------------ Analise Transf. Hough ------" << std::endl;
@@ -538,35 +538,35 @@ void runLabFinal()
 
     if (processar == "2")
     {
-        Filters::preProcImagem(13, "Lab_FINAL");
+        Filters::gerarCentroLabFinal();
         runLabFinal();
         return;
     }
 
     if (processar == "3")
     {
-        Filters::preProcImagem(14, "Lab_FINAL");
+        Filters::desenharGraficoLabFinal();
         runLabFinal();
         return;
     }
 
     if (processar == "4")
     {
-        Filters::preProcImagem(15, "Lab_FINAL");
+        Filters::calcularMaxMinLabFinal();
         runLabFinal();
         return;
     }
 
     if (processar == "5")
     {
-        Filters::preProcImagem(16, "Lab_FINAL");
+        Filters::calcularAmplitudeLabFinal();
         runLabFinal();
         return;
     }
 
     if (processar == "6")
     {
-        Filters::preProcImagem(17, "Lab_FINAL");
+        Filters::detectarFormasLabFinal();
         runLabFinal();
         return;
     }
