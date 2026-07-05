@@ -22,6 +22,7 @@ public:
     static void filtroGamma(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
     static void filtroEsqueleto(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
     static void filtroInverter(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
+    static void filtroTonsCinza(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
     static void filtroLimparMidia(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
     static void filtroMascara(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
     static void filtroExtrairForma(const std::vector<cv::Mat>& imagens, std::filesystem::path destino);
@@ -43,6 +44,7 @@ public:
     static cv::Mat filtroGamma(const cv::Mat& imagem, double gamma);
     static cv::Mat filtroEsqueleto(const cv::Mat& imagem);
     static cv::Mat filtroInverter(const cv::Mat& imagem);
+    static cv::Mat filtroTonsCinza(const cv::Mat& imagem);
     static cv::Mat filtroLimparMidia(const cv::Mat& imagem);
     static cv::Mat centralizarForma(const cv::Mat& imagem, bool preencherCanvas = false);
     static cv::Mat preencherBordasComPreto(const cv::Mat& imagem);

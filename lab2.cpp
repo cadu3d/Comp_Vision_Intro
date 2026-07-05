@@ -23,40 +23,53 @@ int houghMaxRadius = 250;
 
 void runLab2()
 {
-    int processar;
+    std::string processar;
 
     std::cout << "\n";
-    std::cout << "LAB 02 - TRANSFORMADA DE HOUGH, (0 -> VOLTAR): " << std::endl;
-    std::cout << "1 -> Reset (deleta imagens pre-processadas e outputs)" << std::endl;
-    std::cout << "2 -> Pre-Processar" << std::endl;
-    std::cout << "3 -> Configurar parametros de Hough" << std::endl;
-    std::cout << "4 -> Aplicar Transformada de Hough" << std::endl;
+    std::cout << "LAB 02 - TRANSFORMADA DE HOUGH:" << std::endl;
+    std::cout << "\n";
+    std::cout << "0 -> VOLTAR" << std::endl;
+    std::cout << "00 -> RESET" << std::endl;
+    std::cout << "\n";
+    std::cout << "1 -> Pre-Processar" << std::endl;
+    std::cout << "2 -> Configurar parametros de Hough" << std::endl;
+    std::cout << "3 -> Aplicar Transformada de Hough" << std::endl;
     std::cin >> processar;
 
-    switch (processar)
+    if (processar == "0")
     {
-    case 0:
         return;
-    case 1:
+    }
+
+    if (processar == "00")
+    {
         limparOutput(2);
         runLab2();
-        break;
-    case 2:
+        return;
+    }
+
+    if (processar == "1")
+    {
         menuPreProcessamentoLab2();
         runLab2();
-        break;
-    case 3:
+        return;
+    }
+
+    if (processar == "2")
+    {
         configurarHough();
         runLab2();
-        break;
-    case 4:
-        transformarHough();
-        break;
-    default:
-        std::cout << "Escolha invalida" << std::endl;
-        runLab2();
-        break;
+        return;
     }
+
+    if (processar == "3")
+    {
+        transformarHough();
+        return;
+    }
+
+    std::cout << "Escolha invalida" << std::endl;
+    runLab2();
 }
 
 void menuPreProcessamentoLab2()

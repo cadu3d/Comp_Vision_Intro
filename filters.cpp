@@ -1579,12 +1579,13 @@ std::string Filters::menuPreProcImagem()
         << "7 -> Limiar de Otsu\n"
         << "8 -> Gamma\n"
         << "9 -> Esqueleto\n"
-        << "10 -> Inverter\n"
+        << "10 -> Tons de Cinza\n"
         << "\n"
         << "----------- Processamentos ------\n"
-        << "11 -> Limpar Midia\n"
-        << "12 -> Mascara (Metodo 1 e IA 2)\n"
-        << "13 -> Contorno (IA 3)\n"
+        << "11 -> Positivo & Negativo (Lab 3)\n"
+        << "12 -> Limpar Midia (LabFinal)\n"
+        << "13 -> Mascara (LabFinal - Metodo 1 e IA 2)\n"
+        << "14 -> Contorno (LabFinal - IA 3)\n"
         << "\n";
     std::cin >> filtro;
 
@@ -1603,7 +1604,7 @@ void Filters::preProcImagem(int filtro, std::string lab)
         return;
     }
 
-    if (filtro < 1 || filtro > 13)
+    if (filtro < 1 || filtro > 14)
     {
         std::cout << "Filtro invalido" << std::endl;
         return;
@@ -1622,7 +1623,7 @@ void Filters::preProcImagem(int filtro, std::string lab)
     std::vector<ImagemCarregada> imagens = carregarImagensComNomes(origem);
     std::filesystem::create_directories(destino);
 
-    if (filtro >= 1 && filtro <= 13)
+    if (filtro >= 1 && filtro <= 14)
     {
         limparImagensDoDiretorio(destino);
     }
@@ -1738,24 +1739,31 @@ void Filters::preProcImagem(int filtro, std::string lab)
     case 10:
         for (const ImagemCarregada& imagem : imagens)
         {
-            salvarResultado(filtroInverter(imagem.imagem), destino, nomeComSufixo(imagem.nome, "Inverter"));
+            salvarResultado(filtroTonsCinza(imagem.imagem), destino, nomeComSufixo(imagem.nome, "TonsCinza"));
         }
         break;
     case 11:
+        std::cout << "[Positivo & Negativo] Gerando resultados..." << std::endl;
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(filtroInverter(imagem.imagem), destino, nomeComSufixo(imagem.nome, "Inverter"));
+        }
+        break;
+    case 12:
         std::cout << "[Limpar Midia] Gerando resultados..." << std::endl;
         for (const ImagemCarregada& imagem : imagens)
         {
             salvarResultado(filtroLimparMidia(imagem.imagem), destino, nomeComSufixo(imagem.nome, "LimparMidia"));
         }
         break;
-    case 12:
+    case 13:
         std::cout << "[Mascara] Gerando resultados..." << std::endl;
         for (const ImagemCarregada& imagem : imagens)
         {
             salvarResultado(filtroMascara(imagem.imagem), destino, nomeBaseSemSufixos(imagem.nome));
         }
         break;
-    case 13:
+    case 14:
         std::cout << "[Extrair Forma] Gerando resultados..." << std::endl;
         for (const ImagemCarregada& imagem : imagens)
         {
@@ -1988,6 +1996,26 @@ void Filters::filtroInverter(const std::vector<cv::Mat>& imagens, std::filesyste
     for (int i = 0; i < imagens.size(); ++i)
     {
         salvarResultado(filtroInverter(imagens[i]), destino, i);
+    }
+}
+
+cv::Mat Filters::filtroTonsCinza(const cv::Mat& imagem)
+{
+    if (imagem.channels() == 1)
+    {
+        return imagem.clone();
+    }
+
+    cv::Mat result;
+    cv::cvtColor(imagem, result, cv::COLOR_BGR2GRAY);
+    return result;
+}
+
+void Filters::filtroTonsCinza(const std::vector<cv::Mat>& imagens, std::filesystem::path destino)
+{
+    for (int i = 0; i < imagens.size(); ++i)
+    {
+        salvarResultado(filtroTonsCinza(imagens[i]), destino, i);
     }
 }
 
@@ -2383,10 +2411,11 @@ std::string Filters::nomePreProcessamento(int filtro)
     case 7: return "Limiar de Otsu";
     case 8: return "Gamma";
     case 9: return "Esqueleto";
-    case 10: return "Inverter";
-    case 11: return "Limpar Midia";
-    case 12: return "Mascara (Metodo 1 e IA 2)";
-    case 13: return "Contorno (IA 3)";
+    case 10: return "Tons de Cinza";
+    case 11: return "Positivo & Negativo (Lab 3)";
+    case 12: return "Limpar Midia (LabFinal)";
+    case 13: return "Mascara (LabFinal - Metodo 1 e IA 2)";
+    case 14: return "Contorno (LabFinal - IA 3)";
     default: return "Filtro invalido";
     }
 }

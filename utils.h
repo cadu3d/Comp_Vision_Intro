@@ -6,6 +6,7 @@
 #define COMP_VISION_INTRO_UTILS_H
 
 #include <filesystem>
+#include <map>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <string>
@@ -36,5 +37,13 @@ std::filesystem::path verificarOutput();
 std::string verificarOrigemOutput();
 void limparOutput(int lab);
 void limparOutput(std::string lab);
+int limparArquivosComPrefixos(
+    const std::filesystem::path& pasta,
+    const std::vector<std::string>& prefixos
+);
+void salvarGraficoPercentuais(
+    const std::map<std::string, std::vector<double>>& series,
+    const std::filesystem::path& destino
+);
 
 #endif //COMP_VISION_INTRO_UTILS_H

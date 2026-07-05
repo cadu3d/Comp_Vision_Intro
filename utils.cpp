@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <cctype>
+#include <map>
 #include <opencv2/core.hpp>
 #include <opencv2/opencv.hpp>
 
@@ -370,4 +371,113 @@ void limparOutput(std::string lab)
     }
 
     std::cout << "Imagens removidas: " << removidas << std::endl;
+}
+
+int limparArquivosComPrefixos(
+    const std::filesystem::path& pasta,
+    const std::vector<std::string>& prefixos
+)
+{
+    int removidos = 0;
+
+    if (!std::filesystem::exists(pasta))
+    {
+        return removidos;
+    }
+
+    for (const auto& entry : std::filesystem::directory_iterator(pasta))
+    {
+        if (!entry.is_regular_file())
+        {
+            continue;
+        }
+
+        std::string nomeArquivo = entry.path().filename().string();
+
+        for (const std::string& prefixo : prefixos)
+        {
+            if (nomeArquivo.rfind(prefixo, 0) == 0)
+            {
+                std::filesystem::remove(entry.path());
+                ++removidos;
+                break;
+            }
+        }
+    }
+
+    return removidos;
+}
+
+void salvarGraficoPercentuais(
+    const std::map<std::string, std::vector<double>>& series,
+    const std::filesystem::path& destino
+)
+{
+    const int largura = 900;
+    const int altura = 500;
+    const int margem = 60;
+    cv::Mat grafico(altura, largura, CV_8UC3, cv::Scalar(255, 255, 255));
+    std::vector<cv::Scalar> cores = {
+        cv::Scalar(0, 0, 220),
+        cv::Scalar(0, 150, 0),
+        cv::Scalar(220, 80, 0),
+        cv::Scalar(160, 0, 160),
+        cv::Scalar(0, 160, 180)
+    };
+
+    cv::line(grafico, cv::Point(margem, altura - margem), cv::Point(largura - margem, altura - margem), cv::Scalar(0, 0, 0), 1);
+    cv::line(grafico, cv::Point(margem, margem), cv::Point(margem, altura - margem), cv::Scalar(0, 0, 0), 1);
+    cv::putText(grafico, "Incremento", cv::Point(largura / 2 - 45, altura - 15), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 0, 0), 1);
+    cv::putText(grafico, "Perda acumulada (%)", cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.6, cv::Scalar(0, 0, 0), 1);
+
+    for (int i = 0; i <= 100; i += 25)
+    {
+        int y = altura - margem - static_cast<int>((altura - (2 * margem)) * (i / 100.0));
+        cv::line(grafico, cv::Point(margem - 5, y), cv::Point(margem, y), cv::Scalar(0, 0, 0), 1);
+        cv::putText(grafico, std::to_string(i), cv::Point(20, y + 5), cv::FONT_HERSHEY_SIMPLEX, 0.45, cv::Scalar(0, 0, 0), 1);
+    }
+
+    int indexCor = 0;
+    int posicaoLegenda = margem;
+
+    for (const auto& serie : series)
+    {
+        std::vector<cv::Point> pontos;
+        cv::Scalar cor = cores[indexCor % cores.size()];
+
+        for (int i = 0; i < serie.second.size(); ++i)
+        {
+            int x = margem;
+
+            if (serie.second.size() > 1)
+            {
+                x += static_cast<int>((largura - (2 * margem)) * (static_cast<double>(i) / (serie.second.size() - 1)));
+            }
+
+            double valor = std::clamp(serie.second[i], 0.0, 100.0);
+            int y = altura - margem - static_cast<int>((altura - (2 * margem)) * (valor / 100.0));
+            pontos.push_back(cv::Point(x, y));
+
+            std::string incremento = "p" + std::to_string(i);
+            cv::putText(grafico, incremento, cv::Point(x - 8, altura - margem + 20), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0, 0, 0), 1);
+        }
+
+        for (int i = 1; i < pontos.size(); ++i)
+        {
+            cv::line(grafico, pontos[i - 1], pontos[i], cor, 2);
+        }
+
+        for (const cv::Point& ponto : pontos)
+        {
+            cv::circle(grafico, ponto, 4, cor, cv::FILLED);
+        }
+
+        cv::line(grafico, cv::Point(largura - 190, posicaoLegenda), cv::Point(largura - 160, posicaoLegenda), cor, 2);
+        cv::putText(grafico, serie.first, cv::Point(largura - 150, posicaoLegenda + 5), cv::FONT_HERSHEY_SIMPLEX, 0.5, cor, 1);
+
+        posicaoLegenda += 25;
+        indexCor++;
+    }
+
+    cv::imwrite(destino.string(), grafico);
 }

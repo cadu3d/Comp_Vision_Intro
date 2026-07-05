@@ -540,7 +540,7 @@ void runLabFinal()
     // Menu principal do projeto final.
     std::cout << "\n";
     std::cout << "LAB FINAL:" << std::endl;
-    std::cout << "------------" << std::endl;
+    std::cout << "\n";
     std::cout << "0 -> Voltar" << std::endl;
     std::cout << "00 -> Reset" << std::endl;
     std::cout << "1 -> Pre-Processar" << std::endl;
@@ -556,7 +556,7 @@ void runLabFinal()
     std::cout << "7 -> Detectar Circulos" << std::endl;
     std::cout << "8 -> Detectar Formas com Retas" << std::endl;
     std::cout << std::endl;
-    std::cout << "------------ Iteligencia Artificial ----------" << std::endl;
+    std::cout << "------------ Inteligencia Artificial ----------" << std::endl;
     std::cout << "9 -> Analisar imagem com IA" << std::endl;
     std::cout << "10 -> Analisar imagem com IA - Mascara" << std::endl;
     std::cout << "11 -> Analisar imagem com IA - Contorno" << std::endl;
