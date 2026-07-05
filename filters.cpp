@@ -1579,11 +1579,12 @@ std::string Filters::menuPreProcImagem()
         << "7 -> Limiar de Otsu\n"
         << "8 -> Gamma\n"
         << "9 -> Esqueleto\n"
+        << "10 -> Inverter\n"
         << "\n"
         << "----------- Processamentos ------\n"
-        << "10 -> Limpar Midia\n"
-        << "11 -> Mascara\n"
-        << "12 -> Extrair Forma\n"
+        << "11 -> Limpar Midia\n"
+        << "12 -> Mascara (Metodo 1 e IA 2)\n"
+        << "13 -> Contorno (IA 3)\n"
         << "\n";
     std::cin >> filtro;
 
@@ -1602,7 +1603,7 @@ void Filters::preProcImagem(int filtro, std::string lab)
         return;
     }
 
-    if (filtro < 1 || filtro > 12)
+    if (filtro < 1 || filtro > 13)
     {
         std::cout << "Filtro invalido" << std::endl;
         return;
@@ -1621,7 +1622,7 @@ void Filters::preProcImagem(int filtro, std::string lab)
     std::vector<ImagemCarregada> imagens = carregarImagensComNomes(origem);
     std::filesystem::create_directories(destino);
 
-    if (filtro >= 1 && filtro <= 12)
+    if (filtro >= 1 && filtro <= 13)
     {
         limparImagensDoDiretorio(destino);
     }
@@ -1735,24 +1736,35 @@ void Filters::preProcImagem(int filtro, std::string lab)
         }
         break;
     case 10:
+        for (const ImagemCarregada& imagem : imagens)
+        {
+            salvarResultado(filtroInverter(imagem.imagem), destino, nomeComSufixo(imagem.nome, "Inverter"));
+        }
+        break;
+    case 11:
         std::cout << "[Limpar Midia] Gerando resultados..." << std::endl;
         for (const ImagemCarregada& imagem : imagens)
         {
             salvarResultado(filtroLimparMidia(imagem.imagem), destino, nomeComSufixo(imagem.nome, "LimparMidia"));
         }
         break;
-    case 11:
+    case 12:
         std::cout << "[Mascara] Gerando resultados..." << std::endl;
         for (const ImagemCarregada& imagem : imagens)
         {
             salvarResultado(filtroMascara(imagem.imagem), destino, nomeBaseSemSufixos(imagem.nome));
         }
         break;
-    case 12:
+    case 13:
         std::cout << "[Extrair Forma] Gerando resultados..." << std::endl;
         for (const ImagemCarregada& imagem : imagens)
         {
-            salvarResultado(filtroExtrairForma(imagem.imagem), destino, nomeComSufixo(imagem.nome, "Forma"));
+            cv::Mat resultado = filtroMascara(imagem.imagem);
+            resultado = filtroBorda(resultado, 50, 150);
+            resultado = filtroInverter(resultado);
+            resultado = filtroGaussiano(resultado, 10);
+            resultado = filtroGamma(resultado, 16);
+            salvarResultado(resultado, destino, nomeComSufixo(imagem.nome, "Forma"));
         }
         break;
 
@@ -1961,6 +1973,21 @@ void Filters::filtroEsqueleto(const std::vector<cv::Mat>& imagens, std::filesyst
     for (int i = 0; i < imagens.size(); ++i)
     {
         salvarResultado(filtroEsqueleto(imagens[i]), destino, i);
+    }
+}
+
+cv::Mat Filters::filtroInverter(const cv::Mat& imagem)
+{
+    cv::Mat result;
+    cv::bitwise_not(imagem, result);
+    return result;
+}
+
+void Filters::filtroInverter(const std::vector<cv::Mat>& imagens, std::filesystem::path destino)
+{
+    for (int i = 0; i < imagens.size(); ++i)
+    {
+        salvarResultado(filtroInverter(imagens[i]), destino, i);
     }
 }
 
@@ -2356,9 +2383,10 @@ std::string Filters::nomePreProcessamento(int filtro)
     case 7: return "Limiar de Otsu";
     case 8: return "Gamma";
     case 9: return "Esqueleto";
-    case 10: return "Limpar Midia";
-    case 11: return "Mascara";
-    case 12: return "Extrair Forma";
+    case 10: return "Inverter";
+    case 11: return "Limpar Midia";
+    case 12: return "Mascara (Metodo 1 e IA 2)";
+    case 13: return "Contorno (IA 3)";
     default: return "Filtro invalido";
     }
 }

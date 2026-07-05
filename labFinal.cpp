@@ -20,12 +20,14 @@ std::filesystem::path origemLabFinal(std::string& origemMensagem);
 void menuPreProcessamentoFinal();
 void detectarCirculos();
 void detectarRetas();
-std::vector<std::string> carregarClasses();
+std::vector<std::string> carregarClasses(const std::filesystem::path& classesPath);
 std::string classeParaSufixo(const std::string& classe);
 std::string confiancaParaSufixo(float confianca);
 cv::Mat preProcessarImagemOnnx(const cv::Mat& imagem);
 std::pair<int, float> predizerClasse(cv::dnn::Net& net, const cv::Mat& blob);
 void analisarImagemComIA();
+void analisarImagemComIAPreProcessadas();
+void analisarImagemComIAContorno();
 
 // Parametros usados na deteccao de circulos.
 double houghDpFinal = 1.2;
@@ -323,9 +325,8 @@ void detectarRetas()
         << " " << origemMensagem << "." << std::endl;
 }
 
-std::vector<std::string> carregarClasses()
+std::vector<std::string> carregarClasses(const std::filesystem::path& classesPath)
 {
-    const std::filesystem::path classesPath = projectRoot() / "models" / "classes.txt";
     std::ifstream classesFile(classesPath);
 
     if (!classesFile)
@@ -422,13 +423,14 @@ std::pair<int, float> predizerClasse(cv::dnn::Net& net, const cv::Mat& blob)
     return std::pair<int, float>(classeEncontrada.x, static_cast<float>(confianca));
 }
 
-void analisarImagemComIA()
+void analisarImagemComIA(
+    const std::filesystem::path& modelPath,
+    const std::filesystem::path& classesPath,
+    const std::filesystem::path& origem,
+    const std::string& descricaoModelo
+)
 {
-    const std::filesystem::path preProcessadas = projectRoot() / "output" / "Lab_FINAL" / "preProcessadas";
-    const std::filesystem::path inputOriginal = projectRoot() / "input" / "Lab_FINAL";
-    const std::filesystem::path origem = temImagem(preProcessadas) ? preProcessadas : inputOriginal;
     const std::filesystem::path destino = projectRoot() / "output" / "Lab_FINAL";
-    const std::filesystem::path modelPath = projectRoot() / "models" / "handdraw_shapes.onnx";
 
     if (!temImagem(origem))
     {
@@ -438,10 +440,13 @@ void analisarImagemComIA()
 
     try
     {
-        std::vector<std::string> classes = carregarClasses();
+        std::vector<std::string> classes = carregarClasses(classesPath);
         cv::dnn::Net net = cv::dnn::readNetFromONNX(modelPath.string());
         std::vector<ImagemCarregada> imagens = carregarImagensComNomes(origem);
         std::filesystem::create_directories(destino);
+
+        std::cout << "[IA] Modelo: " << descricaoModelo << std::endl;
+        std::cout << "[IA] Origem: " << origem.string() << std::endl;
 
         for (const ImagemCarregada& imagemComNome : imagens)
         {
@@ -489,10 +494,50 @@ void analisarImagemComIA()
     }
 }
 
+void analisarImagemComIA()
+{
+    const std::filesystem::path preProcessadas = projectRoot() / "output" / "Lab_FINAL" / "preProcessadas";
+    const std::filesystem::path inputOriginal = projectRoot() / "input" / "Lab_FINAL";
+    const std::filesystem::path origem = temImagem(preProcessadas) ? preProcessadas : inputOriginal;
+
+    analisarImagemComIA(
+        projectRoot() / "models" / "handdraw_shapes.onnx",
+        projectRoot() / "models" / "classes.txt",
+        origem,
+        "imagens originais"
+    );
+}
+
+void analisarImagemComIAPreProcessadas()
+{
+    const std::filesystem::path preProcessadas = projectRoot() / "output" / "Lab_FINAL" / "preProcessadas";
+
+    analisarImagemComIA(
+        projectRoot() / "models" / "handdraw_shapes_preprocessed.onnx",
+        projectRoot() / "models" / "classes_preprocessed.txt",
+        preProcessadas,
+        "imagens pre-processadas"
+    );
+}
+
+void analisarImagemComIAContorno()
+{
+    const std::filesystem::path preProcessadas = projectRoot() / "output" / "Lab_FINAL" / "preProcessadas";
+
+    analisarImagemComIA(
+        projectRoot() / "models" / "handdraw_shapes_preprocessed_2.onnx",
+        projectRoot() / "models" / "classes_preprocessed_2.txt",
+        preProcessadas,
+        "imagens de contorno"
+    );
+}
+
 void runLabFinal()
 {
-    std::string processar;
+    // Usei string porque existe a opcao 00.
+    std::string opcao;
 
+    // Menu principal do projeto final.
     std::cout << "\n";
     std::cout << "LAB FINAL:" << std::endl;
     std::cout << "------------" << std::endl;
@@ -509,85 +554,114 @@ void runLabFinal()
     std::cout << std::endl;
     std::cout << "------------ Analise Transf. Hough ------" << std::endl;
     std::cout << "7 -> Detectar Circulos" << std::endl;
-    std::cout << "8 -> Detectar Retas" << std::endl;
+    std::cout << "8 -> Detectar Formas com Retas" << std::endl;
     std::cout << std::endl;
     std::cout << "------------ Iteligencia Artificial ----------" << std::endl;
     std::cout << "9 -> Analisar imagem com IA" << std::endl;
+    std::cout << "10 -> Analisar imagem com IA - Mascara" << std::endl;
+    std::cout << "11 -> Analisar imagem com IA - Contorno" << std::endl;
     std::cout << std::endl;
     std::cout << "> ";
-    std::cin >> processar;
+    std::cin >> opcao;
 
-    if (processar == "0")
+    // Volta para o menu principal do programa.
+    if (opcao == "0")
     {
         return;
     }
 
-    if (processar == "00")
+    // Apaga os arquivos gerados no Lab Final.
+    if (opcao == "00")
     {
         limparOutput("Lab_FINAL");
         runLabFinal();
         return;
     }
 
-    if (processar == "1")
+    // Abre o submenu de filtros e pre-processamento.
+    if (opcao == "1")
     {
         menuPreProcessamentoFinal();
         runLabFinal();
         return;
     }
 
-    if (processar == "2")
+    // Gera o centro das imagens.
+    if (opcao == "2")
     {
         Filters::gerarCentroLabFinal();
         runLabFinal();
         return;
     }
 
-    if (processar == "3")
+    // Desenha o grafico da forma.
+    if (opcao == "3")
     {
         Filters::desenharGraficoLabFinal();
         runLabFinal();
         return;
     }
 
-    if (processar == "4")
+    // Calcula os pontos de maximo e minimo.
+    if (opcao == "4")
     {
         Filters::calcularMaxMinLabFinal();
         runLabFinal();
         return;
     }
 
-    if (processar == "5")
+    // Calcula a amplitude do grafico.
+    if (opcao == "5")
     {
         Filters::calcularAmplitudeLabFinal();
         runLabFinal();
         return;
     }
 
-    if (processar == "6")
+    // Detecta a forma usando os dados do nome do grafico.
+    if (opcao == "6")
     {
         Filters::detectarFormasLabFinal();
         runLabFinal();
         return;
     }
 
-    if (processar == "7")
+    // Detecta circulos pela Transformada de Hough.
+    if (opcao == "7")
     {
         detectarCirculos();
         runLabFinal();
         return;
     }
 
-    if (processar == "8")
+    // Detecta formas usando retas.
+    if (opcao == "8")
     {
         detectarRetas();
         runLabFinal();
         return;
     }
 
-    if (processar == "9")
+    // Analise com IA usando o modelo das imagens originais.
+    if (opcao == "9")
     {
         analisarImagemComIA();
+        runLabFinal();
+        return;
+    }
+
+    // Analise com IA usando o modelo das imagens com mascara.
+    if (opcao == "10")
+    {
+        analisarImagemComIAPreProcessadas();
+        runLabFinal();
+        return;
+    }
+
+    // Analise com IA usando o modelo das imagens com contorno.
+    if (opcao == "11")
+    {
+        analisarImagemComIAContorno();
         runLabFinal();
         return;
     }
